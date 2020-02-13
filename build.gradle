@@ -26,7 +26,7 @@ targetCompatibility = 1.8
 
 dependencies {
 	// dependencies for development time
-	compile 'ai.libs:mlplan-weka'
+	compile group: 'ai.libs', name: 'mlplan-weka', version: '0.2.1'
 	testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
