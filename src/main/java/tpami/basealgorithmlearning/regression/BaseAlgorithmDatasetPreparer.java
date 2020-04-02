@@ -168,6 +168,8 @@ public class BaseAlgorithmDatasetPreparer {
 		//			featureMapPerDataset.put(id, getDatasetFeatureRepresentation(data, .7)); // multiply with .7, because the eventual train data is only .7 of the portion here.
 		//		}
 		//		return featureMapPerDataset.get(id);
-		return new DatasetFeatureGenerator("d_").getFeatureRepresentation(SplitterUtil.getLabelStratifiedTrainTestSplit(getData(datasetDescription), 0, .7).get(0));
+		BasicDatasetFeatureGenerator gen = new BasicDatasetFeatureGenerator();
+		gen.setPrefix("d_");
+		return gen.getFeatureRepresentation(SplitterUtil.getLabelStratifiedTrainTestSplit(getData(datasetDescription), 0, .7).get(0));
 	}
 }

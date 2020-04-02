@@ -69,7 +69,7 @@ public class BaseAlgorithmPerformanceLearner {
 			for (double i = 0.05; i <= 1; i+= 0.05) {
 				Map<String, Object> features = new HashMap<>(classifierFeatures);
 				IWekaInstances reducedNewDataset = ((WekaInstances)SplitterUtil.getSimpleTrainTestSplit(newDataset, 0, i).get(0));
-				features.putAll(new DatasetFeatureGenerator("d_").getFeatureRepresentation(reducedNewDataset));
+				features.putAll(new BasicDatasetFeatureGenerator("d_").getFeatureRepresentation(reducedNewDataset));
 				//				features.put("d_instances", Integer.MAX_VALUE);
 				ILabeledInstance inst = DatasetUtil.getInstanceFromMap(data.getInstanceSchema(), features, "runtime", map);
 				Instance wekaInst = WekaInstancesUtil.transformInstanceToWekaInstance(data.getInstanceSchema(), inst);

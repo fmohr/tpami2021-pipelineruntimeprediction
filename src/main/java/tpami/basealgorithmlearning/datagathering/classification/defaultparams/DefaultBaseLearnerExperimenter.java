@@ -1,5 +1,4 @@
-package tpami.basealgorithmlearning.datagathering;
-import java.io.File;
+package tpami.basealgorithmlearning.datagathering.classification.defaultparams;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -9,13 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
-import org.aeonbits.owner.ConfigFactory;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
 import org.api4.java.algorithm.Timeout;
+import org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException;
 import org.api4.java.common.reconstruction.IReconstructible;
 import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
@@ -28,14 +26,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ai.libs.jaicore.basic.reconstruction.ReconstructionPlan;
 import ai.libs.jaicore.db.IDatabaseAdapter;
-import ai.libs.jaicore.db.sql.rest.IRestDatabaseConfig;
-import ai.libs.jaicore.db.sql.rest.RestSqlAdapter;
 import ai.libs.jaicore.experiments.ExperimentDBEntry;
 import ai.libs.jaicore.experiments.ExperimentRunner;
 import ai.libs.jaicore.experiments.IExperimentDatabaseHandle;
 import ai.libs.jaicore.experiments.IExperimentIntermediateResultProcessor;
 import ai.libs.jaicore.experiments.IExperimentSetEvaluator;
-import ai.libs.jaicore.experiments.databasehandle.ExperimenterMySQLHandle;
 import ai.libs.jaicore.experiments.exceptions.ExperimentEvaluationFailedException;
 import ai.libs.jaicore.ml.core.dataset.Dataset;
 import ai.libs.jaicore.ml.core.dataset.DatasetUtil;
@@ -44,28 +39,17 @@ import ai.libs.jaicore.ml.core.filter.SplitterUtil;
 import ai.libs.jaicore.ml.weka.classification.learner.IWekaClassifier;
 import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import ai.libs.jaicore.timing.TimedComputation;
+import tpami.basealgorithmlearning.datagathering.PeakMemoryObserver;
 import weka.classifiers.AbstractClassifier;
 
-public class BaseLearnerExperimenter {
+public class DefaultBaseLearnerExperimenter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("example");
-	private static IExperimentDatabaseHandle databaseHandle;
 	private static final int TOTAL_RUNTIME_IN_SECONDS = 3600 * 12;
 	private static final Timeout to = new Timeout(1, TimeUnit.HOURS);
 
 	public static void main(final String[] args) throws Exception {
 
-		/* get experiment configuration */
-		final Class<?> classifierClass = Class.forName(args[0]);
-		final IBaseLearnerExperimentConfig config = ConfigFactory.create(IBaseLearnerExperimentConfig.class);
-		String classifierWorkingName = classifierClass.getSimpleName().toLowerCase();
-		config.loadPropertiesFromFile(new File("conf/experiments/defaultparams/baselearner.conf"));
-
-		/* setup database connection */
-		IRestDatabaseConfig dbConfig = ConfigFactory.create(IRestDatabaseConfig.class);
-		dbConfig.loadPropertiesFromFile(new File("conf/dbcon-rest.conf"));
-		final RestSqlAdapter adapter = new RestSqlAdapter(dbConfig);
-		databaseHandle = new ExperimenterMySQLHandle(adapter, "evaluations_classifiers_" + classifierWorkingName);
 
 		//		/* prepare database */
 		//		ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
@@ -73,40 +57,29 @@ public class BaseLearnerExperimenter {
 		//		preparer.synchronizeExperiments();
 		//		System.exit(0);
 
+		DefaultBaseLearnerConfigContainer container = new DefaultBaseLearnerConfigContainer(args[0], args[1]);
+		Class<?> classifierClass = Class.forName(args[1]);
+		String classifierWorkingName = classifierClass.getSimpleName().toLowerCase();
+		IExperimentDatabaseHandle databaseHandle = container.getDatabaseHandle();
+
 		/* run an experiment */
 		final ObjectMapper om = new ObjectMapper();
-		System.out.println("Creating the runner.");
 
-		AtomicLong memoryPeak = new AtomicLong();
+		final PeakMemoryObserver mobs = new PeakMemoryObserver();
+		mobs.start();
 
-		Thread t = new Thread() {
-			@Override
-			public void run() {
-				while (!Thread.interrupted()) {
-					long currentMemoryConsumption = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
-					memoryPeak.set(Math.max(memoryPeak.get(), currentMemoryConsumption));
-					System.out.println("Current consumption " + currentMemoryConsumption + ", max: " + memoryPeak.get());
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		};
-		t.start();
-
-		ExperimentRunner runner = new ExperimentRunner(config, new IExperimentSetEvaluator() {
+		LOGGER.info("Creating the runner.");
+		ExperimentRunner runner = new ExperimentRunner(container.getConfig(), new IExperimentSetEvaluator() {
 
 			@Override
 			public void evaluate(final ExperimentDBEntry experimentEntry, final IExperimentIntermediateResultProcessor processor) throws ExperimentEvaluationFailedException, InterruptedException {
-				System.out.println("Reading in experiment.");
+				LOGGER.info("Reading in experiment.");
 				Map<String, String> keys = experimentEntry.getExperiment().getValuesOfKeyFields();
 				int seed = Integer.parseInt(keys.get("seed"));
 				int openmlid = Integer.parseInt(keys.get("openmlid"));
 				int datapoints = Integer.parseInt(keys.get("datapoints"));
 
-				System.out.println("Running " + classifierClass.getName() + " on dataset " + openmlid + " with seed " + seed + " and " + datapoints + " data points.");
+				LOGGER.info("Running {} on dataset {} with seed {} and {} data points.", classifierClass.getName(), openmlid, seed, datapoints);
 				Map<String, Object> map = new HashMap<>();
 
 				/* load dataset */
@@ -116,7 +89,7 @@ public class BaseLearnerExperimenter {
 				try {
 					Dataset ds = (Dataset)OpenMLDatasetReader.deserializeDataset(openmlid);
 					if (ds.getLabelAttribute() instanceof INumericAttribute) {
-						System.out.println("Converting numeric dataset to classification dataset!");
+						LOGGER.info("Converting numeric dataset to classification dataset!");
 						ds = (Dataset)DatasetUtil.convertToClassificationDataset(ds);
 					}
 
@@ -126,16 +99,15 @@ public class BaseLearnerExperimenter {
 					}
 
 					/* check whether we have reports that even smaller sizes do not work */
-					rowInBoundTable = adapter.getRowsOfTable("executionbounds_" + classifierWorkingName).stream().filter(r -> r.getAsInt("openmlid") == openmlid).findAny();
-					System.out.println("Bound available: " + (rowInBoundTable.isPresent() ? "yes (" + rowInBoundTable.get().getAsInt("datapoints") + ")" : "no"));
+					rowInBoundTable = container.getAdapter().getRowsOfTable("executionbounds_" + classifierWorkingName).stream().filter(r -> r.getAsInt("openmlid") == openmlid).findAny();
+					LOGGER.info("Bound available: {}", (rowInBoundTable.isPresent() ? "yes (" + rowInBoundTable.get().getAsInt("datapoints") + ")" : "no"));
 					if (rowInBoundTable.isPresent() && rowInBoundTable.get().getAsInt("datapoints") < datapoints) {
 						throw new IllegalStateException("Experiment canceled due to lower bound on other experiments on this dataset.");
 					}
 
-					System.out.println("Label: " + ds.getLabelAttribute().getClass().getName() + " ... " + ds.getLabelAttribute().getStringDescriptionOfDomain());
-
+					LOGGER.info("Label: {} ... {}", ds.getLabelAttribute().getClass().getName(), ds.getLabelAttribute().getStringDescriptionOfDomain());
 					if (datapoints > ds.size()) {
-						logError(rowInBoundTable, openmlid, datapoints, adapter, classifierWorkingName);
+						logError(rowInBoundTable, openmlid, datapoints, container.getAdapter(), classifierWorkingName);
 						throw new IllegalStateException("Invalid Experiment, added or modified entry in database if relevant.");
 					}
 					double portion = datapoints * 1.0 / ds.size();
@@ -148,7 +120,7 @@ public class BaseLearnerExperimenter {
 					ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
 					ArrayNode commonPrefix = om.createArrayNode();
 					int numInstructions = trainInstructions.size();
-					System.out.println("Train instructions consist of " + numInstructions + " instructions.");
+					LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
 					for (int i = 0; i < numInstructions - 1; i++) {
 						if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
 							throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
@@ -191,7 +163,7 @@ public class BaseLearnerExperimenter {
 						throw new IllegalStateException("Reconstruction of test data failed!");
 					}
 
-					System.out.println(map);
+					LOGGER.info("{}", map);
 					processor.processResults(map);
 					map.clear();
 				}
@@ -204,32 +176,45 @@ public class BaseLearnerExperimenter {
 				/* now train classifier */
 				SimpleDateFormat format = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
 				map.put("train_start",  format.format(new Date(System.currentTimeMillis())));
+				long deadlinetimestamp = System.currentTimeMillis() + to.milliseconds();
 				try {
-					memoryPeak.set(0);
+					mobs.reset();
 					TimedComputation.compute(() -> { c.fit(split.get(0)); return null;}, to.milliseconds(), "Experiment timeout exceeded.");
 					Thread.sleep(1000);
 				} catch (Throwable e) {
 					map.put("train_end",  format.format(new Date(System.currentTimeMillis())));
 					processor.processResults(map);
-					try {
-						logError(rowInBoundTable, openmlid, datapoints, adapter, classifierWorkingName);
-					} catch (SQLException e1) {
-						e1.printStackTrace();
+					if (e instanceof AlgorithmTimeoutedException) {
+						try {
+							logError(rowInBoundTable, openmlid, datapoints, container.getAdapter(), classifierWorkingName);
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
 					}
 					throw new ExperimentEvaluationFailedException(e);
 				}
 				map.put("train_end",  format.format(new Date(System.currentTimeMillis())));
-				map.put("memory_peak", memoryPeak.get());
-				System.out.println("Finished training, now testing. Memory peak was " + map.get("memory_peak"));
+				map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
+				LOGGER.info("Finished training, now testing. Memory peak was {}", map.get("memory_peak"));
 				map.put("test_start",  format.format(new Date(System.currentTimeMillis())));
 				List<Integer> gt = new ArrayList<>();
 				List<Integer> pr = new ArrayList<>();
 				try {
+					long lastTimeoutCheck = 0;
 					int n = split.get(1).size();
 					for (ILabeledInstance i : split.get(1)) {
+						if (System.currentTimeMillis() - lastTimeoutCheck > 10000) {
+							lastTimeoutCheck = System.currentTimeMillis();
+							long remainingTime = deadlinetimestamp - lastTimeoutCheck;
+							LOGGER.debug("Remaining time for this classifier: {}", remainingTime);
+							if (remainingTime <=  0) {
+								LOGGER.info("Triggering timeout ...");
+								throw new AlgorithmTimeoutedException(0);
+							}
+						}
 						gt.add((int)i.getLabel());
 						pr.add((int)c.predict(i).getPrediction());
-						System.out.println(gt.size() + "/" + n + " (" + (gt.size() * 100.0 / n) + "%)");
+						LOGGER.info("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
 					}
 				}
 				catch (Throwable e) {
@@ -241,15 +226,17 @@ public class BaseLearnerExperimenter {
 				map.put("gt", gt);
 				map.put("pr", pr);
 				processor.processResults(map);
-				System.out.println("Finished Experiment " + experimentEntry.getExperiment().getValuesOfKeyFields() + ". Results: " + map);
+				LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(),  map);
 			}
 		}, databaseHandle);
 
-		System.out.println("Running random experiments with timeout " + TOTAL_RUNTIME_IN_SECONDS + "s.");
+		LOGGER.info("Runner created.");
+
+		LOGGER.info("Running random experiments with timeout " + TOTAL_RUNTIME_IN_SECONDS + "s.");
 		runner.setLoggerName("example");
 		long start = System.currentTimeMillis();
 		while ((System.currentTimeMillis() - start) / 1000 <= TOTAL_RUNTIME_IN_SECONDS - to.seconds() * 1.1) {
-			System.out.println("Conducting next experiment.");
+			LOGGER.info("Conducting next experiment.");
 			try {
 				runner.randomlyConductExperiments(1);
 			}
@@ -257,10 +244,22 @@ public class BaseLearnerExperimenter {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("No more time left to conduct more experiments. Stopping.");
+		LOGGER.info("No more time left to conduct more experiments. Stopping.");
 		System.exit(0);
 	}
 
+	/**
+	 * We use execution bounds ONLY for the cases that it is completely safe to avoid execution.
+	 * This can only happen in two cases:
+	 * 1. the TRAINING already times out for a smaller subset. We can, in general, assume that train time grows monotonically in the train size.
+	 * It would be not sufficient to put a bound if the OVERALL or TEST runtime exceeds the time bound.
+	 * This is because the test time will reduce if the train data will be increased.
+	 *
+	 * 2. if the train data in the experiment exceeds the actually available data in the dataset.
+	 *
+	 * Both together imply that an experiment can be avoided if its dataset specification is greate than one that already failed for one of the two reasons above.
+	 *
+	 */
 	public static void logError(final Optional<IKVStore> rowInBoundTable, final int openmlid, final int datapoints, final IDatabaseAdapter adapter, final String classifierWorkingName) throws SQLException {
 		Map<String, Object> errorMap = new HashMap<>();
 		errorMap.put("openmlid", openmlid);

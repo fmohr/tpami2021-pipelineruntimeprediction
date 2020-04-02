@@ -10,30 +10,46 @@ import org.api4.java.ai.ml.core.dataset.schema.attribute.ICategoricalAttribute;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 
-class DatasetFeatureGenerator implements IDatasetFeatureMapper {
+public class BasicDatasetFeatureGenerator implements IDatasetFeatureMapper {
 
-	private final String prefix;
+	private String prefix = "";
+	private String suffix = "";
 
-	public DatasetFeatureGenerator(final String prefix) {
-		super();
-		this.prefix = prefix;
+	public BasicDatasetFeatureGenerator() {
+
+	}
+
+	public BasicDatasetFeatureGenerator(final String prefix) {
+		this();
+		this.setPrefix(prefix);
 	}
 
 	@Override
 	public Map<String, Object> getFeatureRepresentation(final ILabeledDataset<?> dataset) {
 		Map<String, Object> features = new HashMap<>();
-		features.put(this.prefix + "_instances", dataset.size());
-		features.put(this.prefix + "_numattributes", dataset.getNumAttributes());
-		features.put(this.prefix + "_numlabels", Arrays.stream(dataset.getLabelVector()).collect(Collectors.toSet()).size());
-		features.put(this.prefix + "_numnumericattributes", dataset.getInstanceSchema().getAttributeList().stream().filter(a -> a instanceof INumericAttribute).count());
-		features.put(this.prefix + "_numsymbolicattributes", dataset.getInstanceSchema().getAttributeList().stream().filter(a -> !(a instanceof INumericAttribute)).count());
+		features.put(this.prefix + "numinstances" + this.suffix, dataset.size());
+		features.put(this.prefix + "numattributes"+ this.suffix, dataset.getNumAttributes());
+		features.put(this.prefix + "numlabels"+ this.suffix, Arrays.stream(dataset.getLabelVector()).collect(Collectors.toSet()).size());
+		features.put(this.prefix + "numnumericattributes"+ this.suffix, dataset.getInstanceSchema().getAttributeList().stream().filter(a -> a instanceof INumericAttribute).count());
+		features.put(this.prefix + "numsymbolicattributes"+ this.suffix, dataset.getInstanceSchema().getAttributeList().stream().filter(a -> !(a instanceof INumericAttribute)).count());
+
 		int valuesOfCategoricFeatures = 0;
+		int attributesAddedByBinarization = 0;
 		for (IAttribute att : dataset.getListOfAttributes()) {
 			if (att instanceof ICategoricalAttribute) {
-				valuesOfCategoricFeatures += ((ICategoricalAttribute)att).getNumberOfCategories();
+				int numCategories = ((ICategoricalAttribute)att).getNumberOfCategories();
+				valuesOfCategoricFeatures += numCategories;
+				if (numCategories > 2) {
+					attributesAddedByBinarization += numCategories; // one is subtracted, because the original attribute is removed!
+				}
+				else {
+					attributesAddedByBinarization ++;
+				}
 			}
 		}
-		features.put(this.prefix + "_numberofcategories", valuesOfCategoricFeatures);
+		features.put(this.prefix + "numberofcategories"+ this.suffix, valuesOfCategoricFeatures);
+		features.put(this.prefix + "numericattributesafterbinarization"+ this.suffix, (long)features.get(this.prefix + "numnumericattributes"+ this.suffix) + attributesAddedByBinarization);
+
 		//		Map<String, Object> expansions = new HashMap<>();
 		//		for (Entry<String, Object> featureEntry : features.entrySet()) {
 		//			expansions.put(featureEntry.getKey() + "_2", Math.pow(Double.valueOf(featureEntry.getValue().toString()), 2));
@@ -60,5 +76,21 @@ class DatasetFeatureGenerator implements IDatasetFeatureMapper {
 		//			e.printStackTrace();
 		//		}
 		return features;
+	}
+
+	public String getPrefix() {
+		return this.prefix;
+	}
+
+	public void setPrefix(final String prefix) {
+		this.prefix = prefix;
+	}
+
+	public String getSuffix() {
+		return this.suffix;
+	}
+
+	public void setSuffix(final String suffix) {
+		this.suffix = suffix;
 	}
 }

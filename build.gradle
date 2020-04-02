@@ -26,8 +26,13 @@ targetCompatibility = 1.8
 
 dependencies {
 	// dependencies for development time
-	compile group: 'ai.libs', name: 'mlplan-weka', version: '0.2.1'
+	compile 'ai.libs:mlplan-weka'
 	testCompile group: 'junit', name: 'junit', version: '4.12'
+	//compile group: 'org.nd4j', name: 'nd4j-native-platform', version: '1.0.0-beta2'
+	//compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
+	compile "org.nd4j:nd4j-native-platform:1.0.0-beta6"
+	compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
+	compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
 }
 
 repositories {
@@ -52,7 +57,7 @@ task evaluationFatJar(type: Jar) {
 
 task baseLearnerMeasurementsJar(type: Jar) {
     manifest {
-		attributes 'Main-Class': 'ecml.basealgorithmlearning.BaseLearnerExperimenter'
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.classification.defaultparams.DefaultBaseLearnerExperimenter'
     }
     zip64 = true
     baseName = 'baselearnerexecutor'
@@ -61,12 +66,45 @@ task baseLearnerMeasurementsJar(type: Jar) {
     with jar
 }
 
+task parametrizedBaseLearnerMeasurementsJar(type: Jar) {
+    manifest {
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.classification.parametrized.BaseLearnerExperimenter'
+    }
+    zip64 = true
+    baseName = 'parametrizedbaselearnerexecutor'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
+task preprocessorsMeasurementsJar(type: Jar) {
+    manifest {
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.preprocessing.PreprocessingExperimenter'
+    }
+    zip64 = true
+    baseName = 'preprocessorexecutor'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
 task regressionBuilderJar(type: Jar) {
     manifest {
-		attributes 'Main-Class': 'ecml.basealgorithmlearning.LogDatasetToRegressionDatasetConverter'
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.regression.LogDatasetToRegressionDatasetConverter'
     }
     zip64 = true
     baseName = 'regressionbuilder'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
+task metafeaturesJar(type: Jar) {
+    manifest {
+		attributes 'Main-Class': ' tpami.basealgorithmlearning.datagathering.MetaFeatureComputer'
+    }
+    zip64 = true
+    baseName = 'metafeaturebuilder'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar
