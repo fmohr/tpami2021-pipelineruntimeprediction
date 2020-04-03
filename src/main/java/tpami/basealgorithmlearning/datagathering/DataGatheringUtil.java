@@ -12,4 +12,8 @@ public class DataGatheringUtil {
 	public static String formatDate(Date date) {
 		return getDateTimeFormat().format(date);
 	}
+
+	public static String getCurrentFormattedTimestamp() {
+		return String.valueOf(System.currentTimeMillis());
+	}
 }
