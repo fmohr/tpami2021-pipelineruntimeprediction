@@ -239,10 +239,9 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		map.put("gt", gt);
 		map.put("pr", pr);
 		processor.processResults(map);
-		LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map);
-		System.out.println(baselearnerToEventStatisticsMap);
-		System.out.println();
+		LOGGER.info("Finished Experiment {}. Results: {}. Additional information: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map, baselearnerToEventStatisticsMap);
 
+		// TODO publish baselearnerToEventStatisticsMap to database together with experiment key information
 	}
 
 	@Subscribe
