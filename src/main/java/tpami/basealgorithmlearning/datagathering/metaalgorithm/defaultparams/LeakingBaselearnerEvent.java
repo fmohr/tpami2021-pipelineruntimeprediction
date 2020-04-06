@@ -7,7 +7,7 @@ import tpami.basealgorithmlearning.datagathering.DataGatheringUtil;
 public class LeakingBaselearnerEvent {
 
 	private ELeakingBaselearnerEventType eventType;
-	private String timestamp;
+	private long timestamp;
 	private Map<String, Object> datasetMetafeatures;
 	private LeakingBaselearnerWrapper leakingBaselearnerWrapper;
 
@@ -26,8 +26,16 @@ public class LeakingBaselearnerEvent {
 		return eventType;
 	}
 
-	public String getTimestamp() {
+	public long getTimestamp() {
 		return timestamp;
+	}
+
+	public Map<String, Object> getDatasetMetafeatures() {
+		return datasetMetafeatures;
+	}
+
+	public LeakingBaselearnerWrapper getLeakingBaselearnerWrapper() {
+		return leakingBaselearnerWrapper;
 	}
 
 }

@@ -13,7 +13,7 @@ public class DataGatheringUtil {
 		return getDateTimeFormat().format(date);
 	}
 
-	public static String getCurrentFormattedTimestamp() {
-		return String.valueOf(System.currentTimeMillis());
+	public static long getCurrentFormattedTimestamp() {
+		return System.currentTimeMillis();
 	}
 }
