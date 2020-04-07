@@ -15,16 +15,11 @@ import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
 import org.api4.java.algorithm.Timeout;
 import org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException;
-import org.api4.java.common.reconstruction.IReconstructible;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import ai.libs.jaicore.basic.reconstruction.ReconstructionPlan;
 import ai.libs.jaicore.experiments.ExperimentDBEntry;
 import ai.libs.jaicore.experiments.ExperimentRunner;
 import ai.libs.jaicore.experiments.IExperimentDatabaseHandle;
@@ -129,55 +124,55 @@ public class BaseLearnerExperimenter {
 					splitTmp = SplitterUtil.getLabelStratifiedTrainTestSplit(ds, seed, portion);
 
 					/* get json describing training and test data */
-					JsonNode trainNode = om.valueToTree(((IReconstructible)splitTmp.get(0)).getConstructionPlan());
-					JsonNode testNode = om.valueToTree(((IReconstructible)splitTmp.get(1)).getConstructionPlan());
-					ArrayNode trainInstructions = (ArrayNode)trainNode.get("instructions");
-					ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
-					ArrayNode commonPrefix = om.createArrayNode();
-					int numInstructions = trainInstructions.size();
-					LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
-					for (int i = 0; i < numInstructions - 1; i++) {
-						if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
-							throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
-						}
-						commonPrefix.add(trainInstructions.get(i));
-					}
-					if (commonPrefix.size() == 0) {
-						throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
-					}
+					//					JsonNode trainNode = om.valueToTree(((IReconstructible)splitTmp.get(0)).getConstructionPlan());
+					//					JsonNode testNode = om.valueToTree(((IReconstructible)splitTmp.get(1)).getConstructionPlan());
+					//					ArrayNode trainInstructions = (ArrayNode)trainNode.get("instructions");
+					//					ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
+					//					ArrayNode commonPrefix = om.createArrayNode();
+					//					int numInstructions = trainInstructions.size();
+					//					LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
+					//					for (int i = 0; i < numInstructions - 1; i++) {
+					//						if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
+					//							throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
+					//						}
+					//						commonPrefix.add(trainInstructions.get(i));
+					//					}
+					//					if (commonPrefix.size() == 0) {
+					//						throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
+					//					}
 
 					/* create classifier */
 					cTmp = new WekaClassifier(AbstractClassifier.forName(classifierClass.getName(), options));
 					LOGGER.info("Actual option description of the created classifier: {}", Arrays.toString(((OptionHandler)cTmp.getClassifier()).getOptions()));
 
-					/* now write core data about this experiment */
-					map.put("evaluationinputdata", commonPrefix.toString());
-					if (map.get("evaluationinputdata").equals("[]")) {
-						throw new IllegalStateException();
-					}
-					map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
-					map.put("testdata", testInstructions.get(numInstructions - 1).toString());
-					map.put("pipeline", om.writeValueAsString(((IReconstructible)cTmp).getConstructionPlan()));
-
-					/* verify that the compose data recover to the same */
-					ObjectNode composed = om.createObjectNode();
-					composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
-					ArrayNode an = (ArrayNode)composed.get("instructions");
-					JsonNode trainDI = om.readTree(map.get("traindata").toString());
-					JsonNode testDI = om.readTree(map.get("testdata").toString());
-					an.add(trainDI);
-					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
-						throw new IllegalStateException("Reconstruction of train data failed!");
-					}
-					an.remove(an.size() - 1);
-					an.add(testDI);
-					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
-						throw new IllegalStateException("Reconstruction of test data failed!");
-					}
-
-					LOGGER.info("{}", map);
-					processor.processResults(map);
-					map.clear();
+					//					/* now write core data about this experiment */
+					//					map.put("evaluationinputdata", commonPrefix.toString());
+					//					if (map.get("evaluationinputdata").equals("[]")) {
+					//						throw new IllegalStateException();
+					//					}
+					//					map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
+					//					map.put("testdata", testInstructions.get(numInstructions - 1).toString());
+					//					map.put("pipeline", om.writeValueAsString(((IReconstructible)cTmp).getConstructionPlan()));
+					//
+					//					/* verify that the compose data recover to the same */
+					//					ObjectNode composed = om.createObjectNode();
+					//					composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
+					//					ArrayNode an = (ArrayNode)composed.get("instructions");
+					//					JsonNode trainDI = om.readTree(map.get("traindata").toString());
+					//					JsonNode testDI = om.readTree(map.get("testdata").toString());
+					//					an.add(trainDI);
+					//					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
+					//						throw new IllegalStateException("Reconstruction of train data failed!");
+					//					}
+					//					an.remove(an.size() - 1);
+					//					an.add(testDI);
+					//					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
+					//						throw new IllegalStateException("Reconstruction of test data failed!");
+					//					}
+					//
+					//					LOGGER.info("{}", map);
+					//					processor.processResults(map);
+					//					map.clear();
 
 					final List<ILabeledDataset<?>> split = splitTmp;
 					final IWekaClassifier c = cTmp;
@@ -196,6 +191,8 @@ public class BaseLearnerExperimenter {
 					}
 					map.put("train_end",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
+					processor.processResults(map);
+					map.clear();
 					LOGGER.info("Finished training, now testing. Memory peak was {}", map.get("memory_peak"));
 					map.put("test_start",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					List<Integer> gt = new ArrayList<>();
@@ -215,7 +212,7 @@ public class BaseLearnerExperimenter {
 							}
 							gt.add((int)i.getLabel());
 							pr.add((int)c.predict(i).getPrediction());
-							LOGGER.info("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
+							LOGGER.debug("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
 						}
 					}
 					catch (Throwable e) {

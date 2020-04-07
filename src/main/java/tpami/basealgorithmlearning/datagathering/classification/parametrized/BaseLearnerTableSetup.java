@@ -9,7 +9,7 @@ public class BaseLearnerTableSetup {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
 			System.out.println(baseLearner);
-			if (!baseLearner.contains("weka.classifiers.rules.JRip")) {
+			if (!baseLearner.contains("weka.classifiers.functions.VotedPerceptron")) {
 				continue;
 			}
 

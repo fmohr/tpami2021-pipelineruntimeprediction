@@ -21,7 +21,7 @@ public class IBkOptionGenerator implements IExperimentKeyGenerator<String> {
 			return BINARY_OPTIONS.get(i);
 		}
 		else {
-			return O1.get(i - BINARY_OPTIONS.size());
+			return "-K " + O1.get(i - BINARY_OPTIONS.size());
 		}
 	}
 

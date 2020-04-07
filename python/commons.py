@@ -14,6 +14,7 @@ import random
 import os.path
 from os import path
 from itertools import chain, combinations
+from tqdm import tqdm_notebook as tqdm
 
 
 def normalize(arr):
@@ -95,22 +96,26 @@ def prepareRuntimeKnowledge():
 
 def removeOutliersFromBatches(df):
     print("Size before: " + str(len(df)))
-    for i, c in enumerate(classifiers):
-        print("Remove outliers for " + c)
-        cDF = df.query(" classifier == '" + c + "'")
+    algorithms = pd.unique(df["algorithm"])
+    datasets = pd.unique(df["openmlid"])
+    pbar = tqdm(total = len(algorithms) * len(datasets))
+    for c in algorithms:
+        cDF = df.query("algorithm == '" + c + "'")
         numDatasets = datasets.shape[0]
-        for j, d in enumerate(datasets[:,0]):
-            print("\tds " + str(d))
+        for d in datasets:
             dDF = cDF.query("openmlid == " + str(d))
-            for size in trainsizes:
-                rDF = dDF.query("trainpoints == " + str(size))
-                if len(rDF) >= 4:
-                    q3 = np.quantile(rDF["traintime"], .75)
-                    outliers = rDF.query("traintime > " + str(q3 * 10))
-                    if len(outliers) > 0:
-                        df = df.drop(index = outliers.index)
-                        print("\t\tremoved outlier with values " + str(outliers["traintime"].values) + " in batch with " + str(len(rDF)) + " entries, mean " + str(np.mean(rDF["traintime"])) + " and q3 " + str(q3))
-
+            fitsizes = pd.unique(dDF["fitsize"])
+            fitattributes = pd.unique(dDF["fitattributes"])
+            for size in fitsizes:
+                for atts in fitattributes:
+                    rDF = dDF.query("fitsize == " + str(size) + " and fitattributes == " + str(atts))
+                    if len(rDF) >= 4:
+                        q3 = np.quantile(rDF["fittime"], .75)
+                        outliers = rDF.query("fittime > " + str(q3 * 10))
+                        if len(outliers) > 0:
+                            df = df.drop(index = outliers.index)
+            pbar.update(1)
+    pbar.close()
     print("Size after outlier removal: " + str(len(df)))
     return df
 

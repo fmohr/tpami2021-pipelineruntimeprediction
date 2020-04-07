@@ -74,10 +74,10 @@ def updateLearnFile(algorithm, results):
     df = df.T
     df.to_csv(regressionFile, index=False)
     
-def getRegressionInputRepresentation(dataspace, basefeatures, openmlid, classifier, expansion, target):
+def getRegressionInputRepresentation(dataspace, basefeatures, openmlid, algorithm, expansion, target):
 
     # reduce data only to those that have the desired classifier
-    classifierSpace = dataspace.query("classifier == '" + classifier + "'")
+    classifierSpace = dataspace.query("algorithm == '" + algorithm + "'")
     if len(classifierSpace.query("openmlid == " + str(openmlid))) == 0:
         raise Exception("The classifier space has no values for openmlid " + str(openmlid))
     classifierSpace = classifierSpace.dropna(subset=[target])
@@ -125,8 +125,8 @@ def getRegressionInputRepresentation(dataspace, basefeatures, openmlid, classifi
 ### Two targets are possible: "traintime" and "predictiontimeperinstance"
 ### In both cases, the traindatasize variable refers to the number of instances used for FITTING the algorithm
 ### The concrete number of instances for which predictions are made is not relevant and not considered.
-def runExperiment(dataspace, basefeatures, openmlid, classifier, learner, traindatasize, expansion, target, samplesizes):
-    Xtrain, Ytrain, Xtest, Ytest = getRegressionInputRepresentation(dataspace, basefeatures, openmlid, classifier, expansion, target)
+def runExperiment(dataspace, basefeatures, openmlid, algorithm, learner, traindatasize, expansion, target, samplesizes):
+    Xtrain, Ytrain, Xtest, Ytest = getRegressionInputRepresentation(dataspace, basefeatures, openmlid, algorithm, expansion, target)
     
     numInstancesCol = 0 ## num instances are in first column of X
     numInstances = Xtest[:,numInstancesCol]
@@ -181,7 +181,7 @@ def runExperiment(dataspace, basefeatures, openmlid, classifier, learner, traind
 
 # This is to recover runtime predictions and ground truths from the archive.
 def getGTPredictionPairSeries(learner, basefeatures, expansions, trainpoints):
-    serializedDF = pd.read_csv("runtime_predictions.csv").query("learner == '" + str(learner) + "' and basefeatures == '" + str(basefeatures).replace("'", "\\'").replace(",", ";") + "' and expansions == '" + str(expansions) + "' and trainpoints_algorithm == 'full' and trainpoints_learner == " + str(trainpoints))
+    serializedDF = pd.read_csv("data/runtime_predictions.csv").query("learner == '" + str(learner) + "' and basefeatures == '" + str(basefeatures).replace("'", "\\'").replace(",", ";") + "' and expansions == '" + str(expansions) + "' and trainpoints_algorithm == 'full' and trainpoints_learner == " + str(trainpoints))
     datasets = list(pd.unique(serializedDF["openmlid"]))
     classifiers = list(pd.unique(serializedDF["algorithm"]))
     seeds = list(pd.unique(serializedDF["seed"]))
@@ -214,17 +214,18 @@ def getGTPredictionPairSeries(learner, basefeatures, expansions, trainpoints):
     pbar.close()
     return datasets, classifiers, trainGTPredictionPairs, testGTPredictionPairs
 
-def updateGTPredictionPairSeries(datasets, classifiers, mfdf, learner, seeds, trainpoints, basefeatures, expansions, sampleSizes):
-    serializedDF = pd.read_csv("runtime_predictions.csv")
+def updateGTPredictionPairSeries(datasets, algorithms, mfdf, learner, seeds, trainpoints, basefeatures, expansions, sampleSizes):
+    predictionsFile = "data/workdata/runtime_predictions.csv"
+    serializedDF = pd.read_csv(predictionsFile)
     interrupted = False
-    t = len(classifiers) * len(datasets) * len(seeds) * len(trainpoints) * len(expansions)
+    t = len(algorithms) * len(datasets) * len(seeds) * len(trainpoints) * len(expansions)
     k = 0
     #print("Total number of steps: " + str(t))
     pbar = tqdm(total=t)
     itsSinceLastSave = 0
     basefeaturesStr = str(basefeatures).replace(",", ";")
     for ds in datasets:
-        for c in classifiers:
+        for a in algorithms:
             for exp in expansions:
                 for tp in trainpoints:
                     observedFail = False
@@ -236,14 +237,14 @@ def updateGTPredictionPairSeries(datasets, classifiers, mfdf, learner, seeds, tr
                                 continue
                             #print("Learning model for " + str(ds) + "/" + c + " with seed " + str(seed) + " on " + str(tp) + " and expansions " + str(exp) + " (" + str(np.round(100 * k/t, 2)) + "%)")
                             
-                            excerpt = serializedDF.query("openmlid == " + str(ds) + " and algorithm == '" + c + "' and learner == '" + learner + "' and trainpoints_learner == " + str(tp) + " and basefeatures == \"" + basefeaturesStr + "\" and expansions == '" + str(exp) + "' and seed == " + str(seed))
+                            excerpt = serializedDF.query("openmlid == " + str(ds) + " and algorithm == '" + a + "' and learner == '" + learner + "' and trainpoints_learner == " + str(tp) + " and basefeatures == \"" + basefeaturesStr + "\" and expansions == '" + str(exp) + "' and seed == " + str(seed))
                             exists = len(excerpt) > 0
                             
                             if exists:
                                 pass#print("Skipping due to existence")
                             else:
-                                train_results = runExperiment(mfdf, basefeatures, ds, c, learner, tp, exp, "traintime", sampleSizes)
-                                prediction_results = runExperiment(mfdf, basefeatures, ds, c, learner, tp, exp, "predictiontimeperinstance", sampleSizes)
+                                train_results = runExperiment(mfdf, basefeatures, ds, a, learner, tp, exp, "fittime", sampleSizes)
+                                prediction_results = runExperiment(mfdf, basefeatures, ds, a, learner, tp, exp, "applicationtimeperunit", sampleSizes)
                  
                                 # update the dataframe
                                 #if exists:
@@ -257,19 +258,19 @@ def updateGTPredictionPairSeries(datasets, classifiers, mfdf, learner, seeds, tr
                                     if len(train_results[sampleSize][0]) > 0:
                                         if len(train_results[sampleSize][0]) != len(train_results[sampleSize][1]):
                                             raise Exception("Length of GT and PR does not coincide!")
-                                        extDF.loc[len(extDF)] = [ds, c, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "traintime_gt", implode(train_results[sampleSize][0], ";")]
-                                        extDF.loc[len(extDF)] = [ds, c, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "traintime_pr", implode(train_results[sampleSize][1], ";")]
+                                        extDF.loc[len(extDF)] = [ds, a, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "traintime_gt", implode(train_results[sampleSize][0], ";")]
+                                        extDF.loc[len(extDF)] = [ds, a, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "traintime_pr", implode(train_results[sampleSize][1], ";")]
                                 for sampleSize in prediction_results:
                                     if len(prediction_results[sampleSize][0]) > 0:
                                         if len(prediction_results[sampleSize][0]) != len(prediction_results[sampleSize][1]):
                                             raise Exception("Length of GT and PR does not coincide!")
-                                        extDF.loc[len(extDF)] = [ds, c, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "predictiontime_gt", implode(prediction_results[sampleSize][0], ";")]
-                                        extDF.loc[len(extDF)] = [ds, c, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "predictiontime_pr", implode(prediction_results[sampleSize][1], ";")]
+                                        extDF.loc[len(extDF)] = [ds, a, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "predictiontime_gt", implode(prediction_results[sampleSize][0], ";")]
+                                        extDF.loc[len(extDF)] = [ds, a, seed, learner, sampleSize, tp, basefeaturesStr, str(exp), "predictiontime_pr", implode(prediction_results[sampleSize][1], ";")]
                                 serializedDF = pd.concat([serializedDF, extDF])
                                 
                                 # update csv file
                                 if itsSinceLastSave >= 50:
-                                    serializedDF.to_csv("runtime_predictions.csv", index=False)
+                                    serializedDF.to_csv(predictionsFile, index=False)
                                     itsSinceLastSave = 0
                                 else:
                                     itsSinceLastSave += 1 
@@ -292,33 +293,4 @@ def updateGTPredictionPairSeries(datasets, classifiers, mfdf, learner, seeds, tr
         if interrupted:
             break
     pbar.close()
-    serializedDF.to_csv("runtime_predictions.csv", index=False)
-
-def runAllBaseAlgorithmExperiments(exp, dataspace, learner):
-    conducted = 0
-
-    # invoke each experiment with the data of the data space
-    for row_id, e in enumerate(exp.values):
-        evalId = e[0]
-        classifier = e[2]
-        mse_trainruntime_half_index = np.where(exp.columns == ("mse_" + learner + "_trainruntime_half"))[0][0]
-        mse_trainruntime_full_index = np.where(exp.columns == ("mse_" + learner + "_trainruntime_full"))[0][0]
-        mse_testruntime_half_index = np.where(exp.columns == ("mse_" + learner + "_testruntime_half"))[0][0]
-        mse_testruntime_full_index = np.where(exp.columns == ("mse_" + learner + "_testruntime_full"))[0][0]
-        if e[mse_trainruntime_half_index]  != -1:
-            print("Skipping experiment for which already data is available.")
-            continue
-        print("Conducting " + str(conducted + 1) + "-th open experiment " + str(evalId) + ". Dataset " + str(e[1]) + ", classifier: " + classifier + ". " + str(e[3]) + " training instances, seed " + str(e[4]) + ", expansions: " + str(e[5]) + ". Using learner: " + learner)
-        erHalf, erFull = runExperiment(dataspace, e[1], classifier, learner, e[3], e[4], e[5], "traintime")
-        exp.iat[row_id, mse_trainruntime_half_index] = erHalf
-        exp.iat[row_id, mse_trainruntime_full_index] = erFull
-        erHalf, erFull = runExperiment(dataspace, e[1], classifier, learner, e[3], e[4], e[5], "testtime")
-        exp.iat[row_id, mse_testruntime_half_index] = erHalf
-        exp.iat[row_id, mse_testruntime_full_index] = erFull
-        conducted += 1
-        
-        
-        
-
-
-
+    serializedDF.to_csv(predictionsFile, index=False)

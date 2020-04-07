@@ -1,0 +1,170 @@
+Get overview of non-started jobs per classifier
+------------------------------------------------------
+SELECT * FROM
+	(SELECT COUNT(*) as bn FROM evaluations_classifiers_bayesnet WHERE time_started is null) as t1,
+    (SELECT COUNT(*) as ds FROM evaluations_classifiers_decisionstump WHERE time_started is null) as t2,
+    (SELECT COUNT(*) as dt FROM evaluations_classifiers_decisiontable WHERE time_started is null) as t3,
+    (SELECT COUNT(*) as ibk FROM evaluations_classifiers_ibk WHERE time_started is null) as t4,
+    (SELECT COUNT(*) as j48 FROM evaluations_classifiers_j48 WHERE time_started is null) as t5,
+    (SELECT COUNT(*) as jrip FROM evaluations_classifiers_jrip WHERE time_started is null) as t51,
+    (SELECT COUNT(*) as kstar FROM evaluations_classifiers_kstar WHERE time_started is null) as t6,
+    (SELECT COUNT(*) as lmt FROM evaluations_classifiers_lmt WHERE time_started is null) as t7,
+    (SELECT COUNT(*) as logistic FROM evaluations_classifiers_logistic WHERE time_started is null) as t8,
+    (SELECT COUNT(*) as m5p FROM evaluations_classifiers_m5p WHERE time_started is null) as t9,
+    (SELECT COUNT(*) as ann FROM evaluations_classifiers_multilayerperceptron WHERE time_started is null) as t11,
+    (SELECT COUNT(*) as naivebayes FROM evaluations_classifiers_naivebayes WHERE time_started is null) as t12,
+    (SELECT COUNT(*) as naivebayesm FROM evaluations_classifiers_naivebayesmultinomial WHERE time_started is null) as t13,
+    (SELECT COUNT(*) as oner FROM evaluations_classifiers_oner WHERE time_started is null) as t14,
+    (SELECT COUNT(*) as part FROM evaluations_classifiers_part WHERE time_started is null) as t15,
+    (SELECT COUNT(*) as rf FROM evaluations_classifiers_randomforest WHERE time_started is null) as t16,
+    (SELECT COUNT(*) as rt FROM evaluations_classifiers_randomtree WHERE time_started is null) as t17,
+    (SELECT COUNT(*) as rep FROM evaluations_classifiers_reptree WHERE time_started is null) as t18,
+    (SELECT COUNT(*) as sl FROM evaluations_classifiers_simplelogistic WHERE test_end is null) as t19,
+    (SELECT COUNT(*) as smo FROM evaluations_classifiers_smo WHERE test_end is null) as t20,
+    (SELECT COUNT(*) as vp FROM evaluations_classifiers_votedperceptron WHERE test_end is null) as t21,
+    (SELECT COUNT(*) as zeror FROM evaluations_classifiers_zeror WHERE time_started is null) as t22
+
+
+SELECT * FROM
+	(SELECT COUNT(*) as bn FROM evaluations_classifiers_bayesnet WHERE test_end is not null and exception is null) as t1,
+    (SELECT COUNT(*) as ds FROM evaluations_classifiers_decisionstump WHERE test_end is not null and exception is null) as t2,
+    (SELECT COUNT(*) as dt FROM evaluations_classifiers_decisiontable WHERE test_end is not null and exception is null) as t3,
+    (SELECT COUNT(*) as ibk FROM evaluations_classifiers_ibk WHERE test_end is not null and exception is null) as t4,
+    (SELECT COUNT(*) as j48 FROM evaluations_classifiers_j48 WHERE test_end is not null and exception is null) as t5,
+    (SELECT COUNT(*) as jrip FROM evaluations_classifiers_jrip WHERE test_end is not null and exception is null) as t51,
+    (SELECT COUNT(*) as kstar FROM evaluations_classifiers_kstar WHERE test_end is not null and exception is null) as t6,
+    (SELECT COUNT(*) as lmt FROM evaluations_classifiers_lmt WHERE test_end is not null and exception is null) as t7,
+    (SELECT COUNT(*) as logistic FROM evaluations_classifiers_logistic WHERE test_end is not null and exception is null) as t8,
+    (SELECT COUNT(*) as m5p FROM evaluations_classifiers_m5p WHERE test_end is not null and exception is null) as t9,
+    (SELECT COUNT(*) as ann FROM evaluations_classifiers_multilayerperceptron WHERE test_end is not null and exception is null) as t11,
+    (SELECT COUNT(*) as naivebayes FROM evaluations_classifiers_naivebayes WHERE test_end is not null and exception is null) as t12,
+    (SELECT COUNT(*) as naivebayesm FROM evaluations_classifiers_naivebayesmultinomial WHERE test_end is not null and exception is null) as t13,
+    (SELECT COUNT(*) as oner FROM evaluations_classifiers_oner WHERE test_end is not null and exception is null) as t14,
+    (SELECT COUNT(*) as part FROM evaluations_classifiers_part WHERE test_end is not null and exception is null) as t15,
+    (SELECT COUNT(*) as rf FROM evaluations_classifiers_randomforest WHERE test_end is not null and exception is null) as t16,
+    (SELECT COUNT(*) as rt FROM evaluations_classifiers_randomtree WHERE test_end is not null and exception is null) as t17,
+    (SELECT COUNT(*) as rep FROM evaluations_classifiers_reptree WHERE test_end is not null and exception is null) as t18,
+    (SELECT COUNT(*) as sl FROM evaluations_classifiers_simplelogistic WHERE test_end is not null and exception is null) as t19,
+    (SELECT COUNT(*) as smo FROM evaluations_classifiers_smo WHERE test_end is not null and exception is null) as t20,
+    (SELECT COUNT(*) as vp FROM evaluations_classifiers_votedperceptron WHERE test_end is not null and exception is null) as t21,
+    (SELECT COUNT(*) as zeror FROM evaluations_classifiers_zeror WHERE test_end is not null and exception is null) as t22
+    
+
+
+
+
+SELECT COUNT(*) FROM `dataset_mf1` WHERE `f1_numinstances` IS NULL ORDER BY `openmlid` ASC 
+
+SELECT openmlid, COUNT(*) FROM `dataset_mf1` WHERE `f1_numinstances` IS NULL GROUP BY `openmlid` ASC
+
+
+
+
+SELECT COUNT(*), exception from evaluations_classifiers_jrip WHERE exception is not null and exception not like '%DatasetDeserialization%' and exception not like '%OutOfMemory%' and exception not like '%null is an invalid value%' and exception not like '%Error class: org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException%' AND exception not LIKE '%Train and test data do not have common prefix!%' GROUP BY exception
+
+
+
+
+## re-active experiments that failed due to technical problems ##
+
+
+UPDATE evaluations_classifiers_jrip SET host = null, time_started = null, evaluationinputdata = null, traindata = null, testdata = null, pipeline = null, train_start = null, train_end = null, test_start = null, test_end = null, gt = null, pr = null, memory_peak = null, exception = null, time_end = null WHERE exception is not null and exception like '%DatasetDeserialization%' or exception like '%null is an invalid value%' or exception like '%ConcurrentModification%' OR (time_started IS NOT NULL AND time_end IS NULL)
+
+
+UPDATE `evaluations_classifiers_jrip` SET host = null, time_started = null, exception = null, time_end = null WHERE exception LIKE '%canceled due to lower bound on other%'
+
+
+
+# establish only timeout based execution bounds
+SELECT openmlid, min(datapoints) as datapoints FROM (SELECT openmlid, datapoints, train_end-train_start as traintime FROM `evaluations_classifiers_bayesnet`) as t1 where traintime >= 3599 GROUP by openmlid
+
+INSERT INTO executionbounds_bayesnet (SELECT openmlid, min(datapoints) as datapoints FROM (SELECT openmlid, datapoints, train_end-train_start as traintime FROM `evaluations_classifiers_bayesnet`) as t1 where traintime >= 3599 GROUP by openmlid)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####### RESULT PREPARRATION (classifiers) ##########
+SELECT openmlid, trainpoints, seed, classifier, traintime, testtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bayesnet' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_bayesnet` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ds' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_decisionstump` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'dt' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_decisiontable` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ibk' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_ibk` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'j48' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_j48` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'jrip' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_jrip` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'kstar' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_kstar` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'lmt' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_lmt` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'logistic' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_logistic` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'm5p' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_m5p` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ann' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_multilayerperceptron` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'nb' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_naivebayes` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'nbm' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_naivebayesmultinomial` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'oner' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_oner` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'part' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_part` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'rf' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_randomforest` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'rt' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_randomtree` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'reptree' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_reptree` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'sl' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_simplelogistic` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'smo' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_smo` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'vp' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_votedperceptron` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'zeror' as classifier, train_end-train_start as traintime, test_end - test_start as testtime, exception FROM `evaluations_classifiers_zeror` where time_end is not null
+) as t1
+  
+  
+SELECT t10.*, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT 'bf/cfssubseteval' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t1.* FROM evaluations_preprocessors_BestFirst_CfsSubsetEval as t1 where time_end is not null
+UNION
+SELECT 'gsw/cfssubseteval' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t2.* FROM evaluations_preprocessors_GreedyStepwise_CfsSubsetEval as t2 where time_end is not null
+UNION
+SELECT 'correlationAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t3.* FROM evaluations_preprocessors_Ranker_CorrelationAttributeEval as t3 where time_end is not null
+UNION
+SELECT 'GainRatioAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t4.* FROM evaluations_preprocessors_Ranker_GainRatioAttributeEval as t4 where time_end is not null
+UNION
+SELECT 'InfoGainAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t5.* FROM evaluations_preprocessors_Ranker_InfoGainAttributeEval as t5 where time_end is not null
+UNION
+SELECT 'OneRAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t6.* FROM evaluations_preprocessors_Ranker_OneRAttributeEval as t6 where time_end is not null
+UNION
+SELECT 'PCAAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t7.* FROM evaluations_preprocessors_Ranker_PrincipalComponents as t7 where time_end is not null
+UNION
+SELECT 'ReliefFAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t8.* FROM evaluations_preprocessors_Ranker_ReliefFAttributeEval as t8 where time_end is not null
+UNION
+SELECT 'SymmetricalUncertAS' as algo, time_alg_end-time_alg_start as traintime, time_alg_apply_end - time_alg_apply_start as applicationtime, t9.* FROM evaluations_preprocessors_Ranker_SymmetricalUncertAttributeEval as t9 where time_end is not null
+) as t10
+
+
+
+## get results of parametrized learners
+SELECT experiment_id, openmlid,datapoints,algorithmoptions,seed,train_end-train_start as traintime, test_end-test_start testtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception FROM `evaluations_classifiers_bayesnet_configured`
+

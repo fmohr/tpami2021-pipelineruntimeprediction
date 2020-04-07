@@ -110,6 +110,17 @@ task metafeaturesJar(type: Jar) {
     with jar
 }
 
+task resultrecoverer(type: Jar) {
+    manifest {
+		attributes 'Main-Class': ' tpami.basealgorithmlearning.datagathering.classification.parametrized.ResultFromLogFileRecoverer'
+    }
+    zip64 = true
+    baseName = 'resultrecoverer'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
 test {
 	minHeapSize = "30M"
 	maxHeapSize = "3g"
