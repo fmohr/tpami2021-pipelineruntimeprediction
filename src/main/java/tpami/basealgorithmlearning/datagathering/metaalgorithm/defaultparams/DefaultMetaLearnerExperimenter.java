@@ -17,20 +17,21 @@ public class DefaultMetaLearnerExperimenter {
 
 	public static void main(final String[] args) throws Exception {
 
-		// /* prepare database */
+		/* prepare database */
 		// ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
 		// preparer.setLoggerName("example");
 		// preparer.synchronizeExperiments();
 		// System.exit(0);
 
 		DefaultMetaLearnerConfigContainer container = new DefaultMetaLearnerConfigContainer(args[0], args[1]);
-		Class<?> classifierClass = Class.forName(args[1]);
+		Class<?> metalearnerClass = Class.forName(args[1]);
+		Class<?> baselearnerClass = Class.forName(args[2]);
 		IExperimentDatabaseHandle databaseHandle = container.getDatabaseHandle();
 
 		/* run an experiment */
 
 		LOGGER.info("Creating the runner.");
-		ExperimentRunner runner = new ExperimentRunner(container.getConfig(), new DefaultMetaLearnerExperimentSetEvaluator(container, classifierClass, TIME_OUT), databaseHandle);
+		ExperimentRunner runner = new ExperimentRunner(container.getConfig(), new DefaultMetaLearnerExperimentSetEvaluator(container, metalearnerClass, baselearnerClass, TIME_OUT), databaseHandle);
 
 		LOGGER.info("Runner created.");
 

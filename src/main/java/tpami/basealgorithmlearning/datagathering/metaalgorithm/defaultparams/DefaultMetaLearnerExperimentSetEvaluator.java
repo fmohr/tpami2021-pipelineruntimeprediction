@@ -1,13 +1,15 @@
 package tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Map.Entry;
 
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
@@ -27,7 +29,6 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
 import ai.libs.jaicore.basic.reconstruction.ReconstructionPlan;
-import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.experiments.ExperimentDBEntry;
 import ai.libs.jaicore.experiments.IExperimentIntermediateResultProcessor;
 import ai.libs.jaicore.experiments.IExperimentSetEvaluator;
@@ -41,9 +42,9 @@ import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import ai.libs.jaicore.timing.TimedComputation;
 import tpami.basealgorithmlearning.datagathering.PeakMemoryObserver;
 import weka.classifiers.AbstractClassifier;
+import weka.classifiers.Classifier;
 import weka.classifiers.MultipleClassifiersCombiner;
 import weka.classifiers.SingleClassifierEnhancer;
-import weka.classifiers.rules.OneR;
 
 public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetEvaluator {
 
@@ -52,15 +53,19 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 	private Map<LeakingBaselearnerWrapper, LeakingBaselearnerEventStatistics> baselearnerToEventStatisticsMap;
 
 	private DefaultMetaLearnerConfigContainer container;
-	private Class<?> classifierClass;
-	private String classifierWorkingName;
+	private Class<?> metalearnerClass;
+	private String metalearnerName;
+	private Class<?> baselearnerClass;
+	private String baselearnerName;
 	private Timeout timeout;
 	private EventBus eventBus;
 
-	public DefaultMetaLearnerExperimentSetEvaluator(DefaultMetaLearnerConfigContainer container, Class<?> classifierClass, Timeout timeout) {
+	public DefaultMetaLearnerExperimentSetEvaluator(DefaultMetaLearnerConfigContainer container, Class<?> metalearnerClass, Class<?> baselearnerClass, Timeout timeout) {
 		this.container = container;
-		this.classifierClass = classifierClass;
-		this.classifierWorkingName = classifierClass.getSimpleName().toLowerCase();
+		this.metalearnerClass = metalearnerClass;
+		this.metalearnerName = metalearnerClass.getSimpleName().toLowerCase();
+		this.baselearnerClass = baselearnerClass;
+		this.baselearnerName = baselearnerClass.getSimpleName().toLowerCase();
 		this.timeout = timeout;
 		this.eventBus = new EventBus("metalearners");
 		eventBus.register(this);
@@ -81,13 +86,12 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		int openmlid = Integer.parseInt(keys.get("openmlid"));
 		int datapoints = Integer.parseInt(keys.get("datapoints"));
 
-		LOGGER.info("Running {} on dataset {} with seed {} and {} data points.", classifierClass.getName(), openmlid, seed, datapoints);
+		LOGGER.info("Running {} on dataset {} with seed {} and {} data points.", metalearnerClass.getName(), openmlid, seed, datapoints);
 		Map<String, Object> map = new HashMap<>();
 
 		/* load dataset */
 		List<ILabeledDataset<?>> splitTmp = null;
-		IWekaClassifier cTmp = null;
-		Optional<IKVStore> rowInBoundTable = null;
+		IWekaClassifier metalearner = null;
 		try {
 			Dataset ds = (Dataset) OpenMLDatasetReader.deserializeDataset(openmlid);
 			if (ds.getLabelAttribute() instanceof INumericAttribute) {
@@ -101,15 +105,14 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			}
 
 			/* check whether we have reports that even smaller sizes do not work */
-			rowInBoundTable = container.getAdapter().getRowsOfTable("executionbounds_" + classifierWorkingName).stream().filter(r -> r.getAsInt("openmlid") == openmlid).findAny();
-			LOGGER.info("Bound available: {}", (rowInBoundTable.isPresent() ? "yes (" + rowInBoundTable.get().getAsInt("datapoints") + ")" : "no"));
-			if (rowInBoundTable.isPresent() && rowInBoundTable.get().getAsInt("datapoints") < datapoints) {
-				throw new IllegalStateException("Experiment canceled due to lower bound on other experiments on this dataset.");
-			}
+			// rowInBoundTable = container.getAdapter().getRowsOfTable("executionbounds_" + metalearnerName).stream().filter(r -> r.getAsInt("openmlid") == openmlid).findAny();
+			// LOGGER.info("Bound available: {}", (rowInBoundTable.isPresent() ? "yes (" + rowInBoundTable.get().getAsInt("datapoints") + ")" : "no"));
+			// if (rowInBoundTable.isPresent() && rowInBoundTable.get().getAsInt("datapoints") < datapoints) {
+			// throw new IllegalStateException("Experiment canceled due to lower bound on other experiments on this dataset.");
+			// }
 
 			LOGGER.info("Label: {} ... {}", ds.getLabelAttribute().getClass().getName(), ds.getLabelAttribute().getStringDescriptionOfDomain());
 			if (datapoints > ds.size()) {
-				logError(rowInBoundTable, openmlid, datapoints, container.getAdapter(), classifierWorkingName);
 				throw new IllegalStateException("Invalid Experiment, added or modified entry in database if relevant.");
 			}
 			double portion = datapoints * 1.0 / ds.size();
@@ -138,16 +141,15 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			// preparer.setLoggerName("example");
 			// preparer.synchronizeExperiments();
 			// Syst
-			cTmp = new WekaClassifier(AbstractClassifier.forName(classifierClass.getName(), null));
+			metalearner = new WekaClassifier(AbstractClassifier.forName(metalearnerClass.getName(), null));
 
-			AbstractClassifier baseLearnerToUse = new OneR();
-
-			if (cTmp.getClassifier() instanceof SingleClassifierEnhancer) {
-				((SingleClassifierEnhancer) cTmp.getClassifier()).setClassifier(new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse));
-			} else if (cTmp.getClassifier() instanceof MultipleClassifiersCombiner) {
-				((MultipleClassifiersCombiner) cTmp.getClassifier()).setClassifiers(new AbstractClassifier[] { new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse) });
+			Classifier baseLearnerToUse = AbstractClassifier.forName(baselearnerClass.getName(), null);
+			if (metalearner.getClassifier() instanceof SingleClassifierEnhancer) {
+				((SingleClassifierEnhancer) metalearner.getClassifier()).setClassifier(new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse));
+			} else if (metalearner.getClassifier() instanceof MultipleClassifiersCombiner) {
+				((MultipleClassifiersCombiner) metalearner.getClassifier()).setClassifiers(new AbstractClassifier[] { new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse) });
 			} else {
-				throw new RuntimeException("Unknown super class of meta learner: " + cTmp.getClassifier().getClass());
+				throw new RuntimeException("Unknown super class of meta learner: " + metalearner.getClassifier().getClass());
 			}
 
 			/* now write core data about this experiment */
@@ -157,7 +159,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			}
 			map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
 			map.put("testdata", testInstructions.get(numInstructions - 1).toString());
-			map.put("pipeline", om.writeValueAsString(((IReconstructible) cTmp).getConstructionPlan()));
+			map.put("pipeline", om.writeValueAsString(((IReconstructible) metalearner).getConstructionPlan()));
 
 			/* verify that the compose data recover to the same */
 			ObjectNode composed = om.createObjectNode();
@@ -182,7 +184,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			throw new ExperimentEvaluationFailedException(e);
 		}
 		final List<ILabeledDataset<?>> split = splitTmp;
-		final IWekaClassifier c = cTmp;
+		final IWekaClassifier c = metalearner;
 
 		/* now train classifier */
 		SimpleDateFormat format = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
@@ -198,13 +200,6 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		} catch (Throwable e) {
 			map.put("train_end", format.format(new Date(System.currentTimeMillis())));
 			processor.processResults(map);
-			if (e instanceof AlgorithmTimeoutedException) {
-				try {
-					logError(rowInBoundTable, openmlid, datapoints, container.getAdapter(), classifierWorkingName);
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-			}
 			throw new ExperimentEvaluationFailedException(e);
 		}
 		map.put("train_end", format.format(new Date(System.currentTimeMillis())));
@@ -239,9 +234,75 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		map.put("gt", gt);
 		map.put("pr", pr);
 		processor.processResults(map);
+		publishBaselearnerToEventStatisticsMapToDatabase(experimentEntry);
 		LOGGER.info("Finished Experiment {}. Results: {}. Additional information: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map, baselearnerToEventStatisticsMap);
 
-		// TODO publish baselearnerToEventStatisticsMap to database together with experiment key information
+	}
+
+	private void createAdditionalInformationTableIfNotExist() {
+		List<IKVStore> resultSet = null;
+		try {
+			resultSet = container.getAdapter().query("SHOW TABLES LIKE 'additional_information_" + metalearnerName + "'");
+
+			if (resultSet != null && resultSet.isEmpty()) {
+				Map<String, String> fieldToTypeMap = new HashMap<>();
+				fieldToTypeMap.put("info_id", "INT");
+				fieldToTypeMap.put("experiment_id", "INT");
+				fieldToTypeMap.put("openmlid", "VARCHAR(255)");
+				fieldToTypeMap.put("datapoints", "INT");
+				fieldToTypeMap.put("seed", "INT");
+				fieldToTypeMap.put("baselearner", "VARCHAR(255)");
+				fieldToTypeMap.put("hashCodeOfBaselearner", "LONGTEXT");
+				fieldToTypeMap.put("numberOfDistributionCalls", "INT");
+				fieldToTypeMap.put("numberOfDistributionSCalls", "INT");
+				fieldToTypeMap.put("numberOfClassifyInstanceCalls", "INT");
+				fieldToTypeMap.put("numberOfBuildClassifierCalls", "INT");
+				fieldToTypeMap.put("numberOfMetafeatureComputationCalls", "INT");
+				fieldToTypeMap.put("firstDistributionTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("lastDistributionTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("firstDistributionSTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("lastDistributionSTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("firstClassifyInstanceTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("lastClassifyInstanceTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("firstBuildClassifierTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("lastBuildClassifierTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("firstMetafeatureTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("lastMetafeatureTimestamp", "BIGINT(12)");
+				fieldToTypeMap.put("datasetMetafeatures", "LONGTEXT");
+
+				container.getAdapter().createTable("additional_information_" + metalearnerName, "info_id",
+						Arrays.asList("experiment_id", "openmlid", "datapoints", "seed", "baselearner", "hashCodeOfBaselearner", "numberOfDistributionCalls", "numberOfDistributionSCalls", "numberOfClassifyInstanceCalls",
+								"numberOfBuildClassifierCalls", "numberOfMetafeatureComputationCalls", "firstDistributionTimestamp", "lastDistributionTimestamp", "firstDistributionSTimestamp", "lastDistributionSTimestamp",
+								"firstClassifyInstanceTimestamp", "lastClassifyInstanceTimestamp", "firstBuildClassifierTimestamp", "lastBuildClassifierTimestamp", "firstMetafeatureTimestamp", "lastMetafeatureTimestamp",
+								"datasetMetafeatures"),
+						fieldToTypeMap, Arrays.asList("info_id", "experiment_id"));
+			}
+		} catch (SQLException | IOException e) {
+			LOGGER.error("Could not create table for additional information.", e);
+		}
+	}
+
+	public void publishBaselearnerToEventStatisticsMapToDatabase(ExperimentDBEntry experimentEntry) {
+		createAdditionalInformationTableIfNotExist();
+		for (Entry<LeakingBaselearnerWrapper, LeakingBaselearnerEventStatistics> entry : baselearnerToEventStatisticsMap.entrySet()) {
+			Map<String, Object> insertableMap = entry.getValue().getAsInsertableMap();
+
+			int seed = Integer.parseInt(experimentEntry.getExperiment().getValuesOfKeyFields().get("seed"));
+			int openmlid = Integer.parseInt(experimentEntry.getExperiment().getValuesOfKeyFields().get("openmlid"));
+			int datapoints = Integer.parseInt(experimentEntry.getExperiment().getValuesOfKeyFields().get("datapoints"));
+
+			insertableMap.put("baselearner", baselearnerName);
+			insertableMap.put("experiment_id", experimentEntry.getId());
+			insertableMap.put("openmlid", openmlid);
+			insertableMap.put("datapoints", datapoints);
+			insertableMap.put("seed", seed);
+			try {
+				container.getAdapter().insert("additional_information_" + metalearnerName, insertableMap);
+			} catch (SQLException e) {
+				LOGGER.error("Could not write additional information to database.", e);
+			}
+		}
+
 	}
 
 	@Subscribe
@@ -260,31 +321,6 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 
 	private void initializeNewExperiment() {
 		baselearnerToEventStatisticsMap = new HashMap<>();
-	}
-
-	/**
-	 * We use execution bounds ONLY for the cases that it is completely safe to avoid execution.
-	 * This can only happen in two cases:
-	 * 1. the TRAINING already times out for a smaller subset. We can, in general, assume that train time grows monotonically in the train size.
-	 * It would be not sufficient to put a bound if the OVERALL or TEST runtime exceeds the time bound.
-	 * This is because the test time will reduce if the train data will be increased.
-	 *
-	 * 2. if the train data in the experiment exceeds the actually available data in the dataset.
-	 *
-	 * Both together imply that an experiment can be avoided if its dataset specification is greate than one that already failed for one of the two reasons above.
-	 *
-	 */
-	public static void logError(final Optional<IKVStore> rowInBoundTable, final int openmlid, final int datapoints, final IDatabaseAdapter adapter, final String classifierWorkingName) throws SQLException {
-		Map<String, Object> errorMap = new HashMap<>();
-		errorMap.put("openmlid", openmlid);
-		errorMap.put("datapoints", datapoints);
-		if (!rowInBoundTable.isPresent()) {
-			adapter.insert("executionbounds_" + classifierWorkingName, errorMap);
-		} else if (datapoints < rowInBoundTable.get().getAsInt("datapoints")) {
-			Map<String, Object> condMap = new HashMap<>();
-			condMap.put("openmlid", openmlid);
-			adapter.update("executionbounds_" + classifierWorkingName, errorMap, condMap);
-		}
 	}
 
 }

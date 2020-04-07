@@ -1,5 +1,6 @@
 package tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class LeakingBaselearnerEventStatistics {
@@ -28,6 +29,8 @@ public class LeakingBaselearnerEventStatistics {
 	private long lastMetafeatureTimestamp = 0;
 
 	private Map<String, Object> datasetMetafeatures;
+
+	private Exception exception;
 
 	public LeakingBaselearnerEventStatistics(LeakingBaselearnerWrapper leakingBaselearnerWrapper) {
 		hashCodeOfBaselearner = leakingBaselearnerWrapper.hashCode();
@@ -69,7 +72,7 @@ public class LeakingBaselearnerEventStatistics {
 			}
 			break;
 		case START_BUILD_CLASSIFIER:
-			numberOfClassifyInstanceCalls++;
+			numberOfBuildClassifierCalls++;
 			if (event.getTimestamp() < firstBuildClassifierTimestamp) {
 				firstBuildClassifierTimestamp = event.getTimestamp();
 			}
@@ -94,6 +97,8 @@ public class LeakingBaselearnerEventStatistics {
 			}
 			datasetMetafeatures = event.getDatasetMetafeatures();
 			break;
+		case EXCEPTION:
+			exception = event.getException();
 		}
 	}
 
@@ -165,6 +170,30 @@ public class LeakingBaselearnerEventStatistics {
 		return datasetMetafeatures;
 	}
 
+	public Map<String, Object> getAsInsertableMap() {
+		Map<String, Object> insertableMap = new HashMap<>();
+
+		insertableMap.put("hashCodeOfBaselearner", hashCodeOfBaselearner);
+		insertableMap.put("numberOfDistributionCalls", numberOfDistributionCalls);
+		insertableMap.put("numberOfDistributionSCalls", numberOfDistributionSCalls);
+		insertableMap.put("numberOfClassifyInstanceCalls", numberOfClassifyInstanceCalls);
+		insertableMap.put("numberOfBuildClassifierCalls", numberOfBuildClassifierCalls);
+		insertableMap.put("numberOfMetafeatureComputationCalls", numberOfMetafeatureComputationCalls);
+		insertableMap.put("firstDistributionTimestamp", firstDistributionTimestamp);
+		insertableMap.put("lastDistributionTimestamp", lastDistributionTimestamp);
+		insertableMap.put("firstDistributionSTimestamp", firstDistributionSTimestamp);
+		insertableMap.put("lastDistributionSTimestamp", lastDistributionSTimestamp);
+		insertableMap.put("firstClassifyInstanceTimestamp", firstClassifyInstanceTimestamp);
+		insertableMap.put("lastClassifyInstanceTimestamp", lastClassifyInstanceTimestamp);
+		insertableMap.put("firstBuildClassifierTimestamp", firstBuildClassifierTimestamp);
+		insertableMap.put("lastBuildClassifierTimestamp", lastBuildClassifierTimestamp);
+		insertableMap.put("firstMetafeatureTimestamp", firstMetafeatureTimestamp);
+		insertableMap.put("lastMetafeatureTimestamp", lastMetafeatureTimestamp);
+		insertableMap.put("datasetMetafeatures", datasetMetafeatures.toString());
+
+		return insertableMap;
+	}
+
 	@Override
 	public String toString() {
 		return "LeakingBaselearnerEventStatistics [hashCodeOfBaselearner=" + hashCodeOfBaselearner + ", numberOfDistributionCalls=" + numberOfDistributionCalls + ", numberOfDistributionSCalls=" + numberOfDistributionSCalls
@@ -172,7 +201,7 @@ public class LeakingBaselearnerEventStatistics {
 				+ ", firstDistributionTimestamp=" + firstDistributionTimestamp + ", lastDistributionTimestamp=" + lastDistributionTimestamp + ", firstDistributionSTimestamp=" + firstDistributionSTimestamp + ", lastDistributionSTimestamp="
 				+ lastDistributionSTimestamp + ", firstClassifyInstanceTimestamp=" + firstClassifyInstanceTimestamp + ", lastClassifyInstanceTimestamp=" + lastClassifyInstanceTimestamp + ", firstBuildClassifierTimestamp="
 				+ firstBuildClassifierTimestamp + ", lastBuildClassifierTimestamp=" + lastBuildClassifierTimestamp + ", firstMetafeatureTimestamp=" + firstMetafeatureTimestamp + ", lastMetafeatureTimestamp=" + lastMetafeatureTimestamp
-				+ ", datasetMetafeatures=" + datasetMetafeatures + "]";
+				+ ", datasetMetafeatures=" + datasetMetafeatures + ", exception=" + exception + "]";
 	}
 
 }

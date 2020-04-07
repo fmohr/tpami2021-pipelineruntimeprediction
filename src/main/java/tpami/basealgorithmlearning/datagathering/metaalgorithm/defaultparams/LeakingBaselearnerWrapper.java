@@ -7,6 +7,7 @@ import com.google.common.eventbus.EventBus;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
 import tpami.basealgorithmlearning.regression.BasicDatasetFeatureGenerator;
 import weka.classifiers.AbstractClassifier;
+import weka.classifiers.Classifier;
 import weka.classifiers.Sourcable;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -15,59 +16,85 @@ import weka.core.Instances;
 public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable {
 
 	private EventBus eventBus;
-	private AbstractClassifier abstractClassifier;
+	private Classifier abstractClassifier;
 
-	public LeakingBaselearnerWrapper(EventBus eventBus, AbstractClassifier abstractClassifier) {
+	public LeakingBaselearnerWrapper(EventBus eventBus, Classifier abstractClassifier) {
 		this.eventBus = eventBus;
 		this.abstractClassifier = abstractClassifier;
 	}
 
 	@Override
 	public void buildClassifier(final Instances instances) throws Exception {
-		publishStartComputeMetafeaturesEvent();
+		try {
+			publishStartComputeMetafeaturesEvent();
 
-		Map<String, Object> metafeatures = computeMetafeatures(instances);
+			Map<String, Object> metafeatures = computeMetafeatures(instances);
 
-		publishStopComputeMetafeaturesEvent(metafeatures);
+			publishStopComputeMetafeaturesEvent(metafeatures);
 
-		publishStartBuildClassifierEvent();
+			publishStartBuildClassifierEvent();
 
-		abstractClassifier.buildClassifier(instances);
+			abstractClassifier.buildClassifier(instances);
 
-		publishStopBuildClassifierEvent();
+			publishStopBuildClassifierEvent();
+
+		} catch (Exception ex) {
+			publishExceptionEvent(ex);
+			throw ex;
+		}
 	}
 
 	@Override
 	public double classifyInstance(final Instance instance) throws Exception {
-		publishStartClassifyEvent();
+		try {
+			publishStartClassifyEvent();
 
-		double prediction = abstractClassifier.classifyInstance(instance);
+			double prediction = abstractClassifier.classifyInstance(instance);
 
-		publishStopClassifyEvent();
+			publishStopClassifyEvent();
 
-		return prediction;
+			return prediction;
+		} catch (Exception ex) {
+			publishExceptionEvent(ex);
+			throw ex;
+		}
+
 	}
 
 	@Override
 	public double[] distributionForInstance(final Instance instance) throws Exception {
-		publishStartDistributionEvent();
+		try {
+			publishStartDistributionEvent();
 
-		double[] predictions = abstractClassifier.distributionForInstance(instance);
+			double[] predictions = abstractClassifier.distributionForInstance(instance);
 
-		publishStopDistributionEvent();
+			publishStopDistributionEvent();
 
-		return predictions;
+			return predictions;
+		} catch (Exception ex) {
+			publishExceptionEvent(ex);
+			throw ex;
+		}
 	}
 
 	@Override
 	public double[][] distributionsForInstances(Instances batch) throws Exception {
-		publishStartDistributionSEvent();
+		try {
+			if (abstractClassifier instanceof AbstractClassifier) {
+				publishStartDistributionSEvent();
 
-		double[][] predictions = abstractClassifier.distributionsForInstances(batch);
+				double[][] predictions = ((AbstractClassifier) abstractClassifier).distributionsForInstances(batch);
 
-		publishStopDistributionSEvent();
+				publishStopDistributionSEvent();
 
-		return predictions;
+				return predictions;
+			}
+
+			throw new RuntimeException("Classifier " + abstractClassifier + " does not support distributionS.");
+		} catch (Exception ex) {
+			publishExceptionEvent(ex);
+			throw ex;
+		}
 	}
 
 	@Override
@@ -76,21 +103,16 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	}
 
 	@Override
-	public void preExecution() throws Exception {
-		abstractClassifier.preExecution();
-	}
-
-	@Override
-	public void postExecution() throws Exception {
-		abstractClassifier.postExecution();
-	}
-
-	@Override
 	public String toSource(String className) throws Exception {
-		if (abstractClassifier instanceof Sourcable) {
-			return ((Sourcable) abstractClassifier).toString();
+		try {
+			if (abstractClassifier instanceof Sourcable) {
+				return ((Sourcable) abstractClassifier).toString();
+			}
+			throw new RuntimeException("Abstract classifier " + abstractClassifier.toString() + " does not support sourcing.");
+		} catch (Exception ex) {
+			publishExceptionEvent(ex);
+			throw ex;
 		}
-		throw new RuntimeException("Abstract classifier " + abstractClassifier.toString() + " does not support sourcing.");
 	}
 
 	public void publishStartClassifyEvent() {
@@ -131,6 +153,10 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 
 	public void publishStopComputeMetafeaturesEvent(Map<String, Object> metafeatures) {
 		eventBus.post(new LeakingBaselearnerEvent(metafeatures, this));
+	}
+
+	public void publishExceptionEvent(Exception exception) {
+		eventBus.post(new LeakingBaselearnerEvent(exception));
 	}
 
 	public Map<String, Object> computeMetafeatures(Instances instances) {
