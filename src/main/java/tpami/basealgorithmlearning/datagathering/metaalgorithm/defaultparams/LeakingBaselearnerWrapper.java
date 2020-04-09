@@ -12,8 +12,11 @@ import weka.classifiers.Sourcable;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.Randomizable;
 
-public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable {
+public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable, Randomizable {
+
+	private int seed;
 
 	private String randomString;
 
@@ -119,6 +122,24 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 			publishExceptionEvent(ex);
 			throw ex;
 		}
+	}
+
+	@Override
+	public void setSeed(int seed) {
+		if (abstractClassifier instanceof Randomizable) {
+			((Randomizable) abstractClassifier).setSeed(seed);
+		} else {
+			this.seed = seed;
+		}
+
+	}
+
+	@Override
+	public int getSeed() {
+		if (abstractClassifier instanceof Randomizable) {
+			return ((Randomizable) abstractClassifier).getSeed();
+		}
+		return seed;
 	}
 
 	public void publishStartClassifyEvent() {
