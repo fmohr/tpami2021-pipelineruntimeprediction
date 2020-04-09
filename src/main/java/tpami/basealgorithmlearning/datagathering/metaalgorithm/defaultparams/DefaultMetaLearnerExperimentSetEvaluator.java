@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
@@ -145,9 +146,9 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 
 			Classifier baseLearnerToUse = AbstractClassifier.forName(baselearnerClass.getName(), null);
 			if (metalearner.getClassifier() instanceof SingleClassifierEnhancer) {
-				((SingleClassifierEnhancer) metalearner.getClassifier()).setClassifier(new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse));
+				((SingleClassifierEnhancer) metalearner.getClassifier()).setClassifier(new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse, RandomStringUtils.random(80)));
 			} else if (metalearner.getClassifier() instanceof MultipleClassifiersCombiner) {
-				((MultipleClassifiersCombiner) metalearner.getClassifier()).setClassifiers(new AbstractClassifier[] { new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse) });
+				((MultipleClassifiersCombiner) metalearner.getClassifier()).setClassifiers(new AbstractClassifier[] { new LeakingBaselearnerWrapper(eventBus, baseLearnerToUse, RandomStringUtils.random(80)) });
 			} else {
 				throw new RuntimeException("Unknown super class of meta learner: " + metalearner.getClassifier().getClass());
 			}

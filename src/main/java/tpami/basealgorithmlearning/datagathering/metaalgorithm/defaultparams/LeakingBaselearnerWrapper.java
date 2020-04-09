@@ -15,12 +15,18 @@ import weka.core.Instances;
 
 public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable {
 
-	private EventBus eventBus;
+	private String randomString;
+
+	private transient EventBus eventBus;
 	private Classifier abstractClassifier;
 
-	public LeakingBaselearnerWrapper(EventBus eventBus, Classifier abstractClassifier) {
+	public LeakingBaselearnerWrapper(EventBus eventBus, Classifier abstractClassifier, String randomString) {
 		this.eventBus = eventBus;
 		this.abstractClassifier = abstractClassifier;
+		this.randomString = randomString;
+		if (eventBus != null) {
+			EventBusHolder.registerEventBus(randomString, eventBus);
+		}
 	}
 
 	@Override
@@ -116,52 +122,63 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	}
 
 	public void publishStartClassifyEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_CLASSIFY, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_CLASSIFY, this));
 	}
 
 	public void publishStopClassifyEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_CLASSIFY, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_CLASSIFY, this));
 	}
 
 	public void publishStartDistributionEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTION, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTION, this));
 	}
 
 	public void publishStopDistributionEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTION, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTION, this));
 	}
 
 	public void publishStartDistributionSEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTIONS, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTIONS, this));
 	}
 
 	public void publishStopDistributionSEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTIONS, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTIONS, this));
 	}
 
 	public void publishStartBuildClassifierEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_BUILD_CLASSIFIER, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_BUILD_CLASSIFIER, this));
 	}
 
 	public void publishStopBuildClassifierEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_BUILD_CLASSIFIER, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_BUILD_CLASSIFIER, this));
 	}
 
 	public void publishStartComputeMetafeaturesEvent() {
-		eventBus.post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_METAFEATURE_COMPUTATION, this));
+		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_METAFEATURE_COMPUTATION, this));
 	}
 
 	public void publishStopComputeMetafeaturesEvent(Map<String, Object> metafeatures) {
-		eventBus.post(new LeakingBaselearnerEvent(metafeatures, this));
+		getEventBus().post(new LeakingBaselearnerEvent(metafeatures, this));
 	}
 
 	public void publishExceptionEvent(Exception exception) {
-		eventBus.post(new LeakingBaselearnerEvent(exception));
+		getEventBus().post(new LeakingBaselearnerEvent(exception));
 	}
 
 	public Map<String, Object> computeMetafeatures(Instances instances) {
 		BasicDatasetFeatureGenerator featureGenerator = new BasicDatasetFeatureGenerator();
 		return featureGenerator.getFeatureRepresentation(new WekaInstances(instances));
+	}
+
+	private EventBus getEventBus() {
+		if (eventBus == null) {
+			eventBus = EventBusHolder.getEventBusForWrapper(this);
+		}
+		return eventBus;
+	}
+
+	public String getRandomString() {
+		return randomString;
 	}
 
 }
