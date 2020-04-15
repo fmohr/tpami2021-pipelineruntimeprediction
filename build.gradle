@@ -20,19 +20,33 @@ sourceSets {
     }
 }
 
-
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
 	// dependencies for development time
-	compile 'ai.libs:mlplan-weka'
+	compile ('ai.libs:mlplan-weka') {
+ 		exclude group: 'org.nd4j'
+ 		exclude group: 'org.bytedeco.javacpp-presets'
+ 		exclude group: 'org.deeplearning4j'
+ 		exclude group: 'org.openjfx'
+ 		exclude group: 'com.sun.jersey'
+ 		exclude group: 'org.glassfish.jersey.core'
+ 		exclude group: 'org.glassfish.jersey.inject'
+ 		exclude group: 'org.apache.hadoop'
+ 		exclude group: 'org.apache.maven'
+ 		exclude group: 'org.apache.zookeeper'
+ 		exclude group: 'org.glassfish.jersey.ext'
+ 		exclude group: 'org.eclipse.rdf4j'
+ 		exclude group: 'net.sourceforge.owlapi'
+ 		exclude group: 'org.graphstream'
+ 		exclude group: 'com.github.graphstream'
+	}
 	testCompile group: 'junit', name: 'junit', version: '4.12'
-	//compile group: 'org.nd4j', name: 'nd4j-native-platform', version: '1.0.0-beta2'
-	//compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
+	compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
 	compile "org.nd4j:nd4j-native-platform:1.0.0-beta6"
-	compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
-	compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
+	//compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
+	//compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
 }
 
 repositories {
@@ -132,6 +146,17 @@ task resultrecoverer(type: Jar) {
     with jar
 }
 
+task automlexperimenter(type: Jar) {
+    manifest {
+		attributes 'Main-Class': ' tpami.automlexperimenter.AutoMLExperimenter'
+    }
+    zip64 = true
+    baseName = 'automlExperimenter'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
 test {
 	minHeapSize = "30M"
 	maxHeapSize = "3g"
@@ -141,4 +166,7 @@ test {
 		events "failed"
 		exceptionFormat "full"
      } 	
+}
+eclipse {
+	project.natures "org.eclipse.buildship.core.gradleprojectnature"
 }

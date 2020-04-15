@@ -2,6 +2,7 @@ package tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class LeakingBaselearnerEventStatistics {
 
@@ -33,6 +34,7 @@ public class LeakingBaselearnerEventStatistics {
 	private Exception exception;
 
 	public LeakingBaselearnerEventStatistics(final LeakingBaselearnerWrapper leakingBaselearnerWrapper) {
+		Objects.requireNonNull(leakingBaselearnerWrapper);
 		this.hashCodeOfBaselearner = leakingBaselearnerWrapper.hashCode();
 	}
 

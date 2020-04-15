@@ -13,8 +13,9 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Randomizable;
+import weka.core.WeightedInstancesHandler;
 
-public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable, Randomizable {
+public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sourcable, Randomizable, WeightedInstancesHandler {
 
 	private int seed;
 

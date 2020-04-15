@@ -117,42 +117,42 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			this.checkFail(this.knownFailedExperimentsOfDatasets.get(openmlid), datapoints, baselearner);
 			this.logger.info("Did not find any reason to believe that this experiment will fail based on earlier insights.");
 			int MIN = 15;
-			if (System.currentTimeMillis() - this.timestampOfLastErrorQueriesPerDataset.computeIfAbsent(openmlid, id -> (long)0) > 1000 * 60 * MIN) {
+			if (System.currentTimeMillis() - this.timestampOfLastErrorQueriesPerDataset.computeIfAbsent(openmlid, id -> (long) 0) > 1000 * 60 * MIN) {
 				this.logger.info("Last check was at least {} minutes ago, checking again.", MIN);
 				Collection<ExperimentDBEntry> failedExperimentsOnThisDataset = this.container.getDatabaseHandle().getFailedExperiments(comparisonExperiments);
 				this.knownFailedExperimentsOfDatasets.put(openmlid, failedExperimentsOnThisDataset);
 				this.timestampOfLastErrorQueriesPerDataset.put(openmlid, System.currentTimeMillis());
 				this.checkFail(failedExperimentsOnThisDataset, datapoints, baselearner);
-				this.logger.info("Did not find any reason to believe that this experiment will fail. Running {} with options {} on dataset {} with seed {} and {} data points.", baselearner, keys.get("algorithmoptions"), openmlid, seed, datapoints);
-			}
-			else {
+				this.logger.info("Did not find any reason to believe that this experiment will fail. Running {} with options {} on dataset {} with seed {} and {} data points.", baselearner, keys.get("algorithmoptions"), openmlid, seed,
+						datapoints);
+			} else {
 				this.logger.info("Last check was within last {} minutes ago, not checking but conducting (blindly trusting that this experiment is not dominated by some other finished meanwhile).", MIN);
 			}
 
 			this.logger.info("Label: {} ... {}", ds.getLabelAttribute().getClass().getName(), ds.getLabelAttribute().getStringDescriptionOfDomain());
-			if (datapoints > ds.size()) {
-				throw new IllegalStateException("Ddataset has not sufficient datapoints.");
+			if (datapoints >= ds.size()) { // also forbid to use 100% of the data for training (no testing possible)
+				throw new IllegalStateException("Dataset has not sufficient datapoints.");
 			}
 			double portion = datapoints * 1.0 / ds.size();
 			splitTmp = SplitterUtil.getLabelStratifiedTrainTestSplit(ds, seed, portion);
 
 			/* get json describing training and test data */
-			//			JsonNode trainNode = om.valueToTree(((IReconstructible) splitTmp.get(0)).getConstructionPlan());
-			//			JsonNode testNode = om.valueToTree(((IReconstructible) splitTmp.get(1)).getConstructionPlan());
-			//			ArrayNode trainInstructions = (ArrayNode) trainNode.get("instructions");
-			//			ArrayNode testInstructions = (ArrayNode) testNode.get("instructions");
-			//			ArrayNode commonPrefix = om.createArrayNode();
-			//			int numInstructions = trainInstructions.size();
-			//			this.logger.info("Train instructions consist of {} instructions.", numInstructions);
-			//			for (int i = 0; i < numInstructions - 1; i++) {
-			//				if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
-			//					throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
-			//				}
-			//				commonPrefix.add(trainInstructions.get(i));
-			//			}
-			//			if (commonPrefix.size() == 0) {
-			//				throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
-			//			}
+			// JsonNode trainNode = om.valueToTree(((IReconstructible) splitTmp.get(0)).getConstructionPlan());
+			// JsonNode testNode = om.valueToTree(((IReconstructible) splitTmp.get(1)).getConstructionPlan());
+			// ArrayNode trainInstructions = (ArrayNode) trainNode.get("instructions");
+			// ArrayNode testInstructions = (ArrayNode) testNode.get("instructions");
+			// ArrayNode commonPrefix = om.createArrayNode();
+			// int numInstructions = trainInstructions.size();
+			// this.logger.info("Train instructions consist of {} instructions.", numInstructions);
+			// for (int i = 0; i < numInstructions - 1; i++) {
+			// if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
+			// throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
+			// }
+			// commonPrefix.add(trainInstructions.get(i));
+			// }
+			// if (commonPrefix.size() == 0) {
+			// throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
+			// }
 
 			/* create classifier */
 			// ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
@@ -173,33 +173,33 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			}
 
 			/* now write core data about this experiment */
-			//			map.put("evaluationinputdata", commonPrefix.toString());
-			//			if (map.get("evaluationinputdata").equals("[]")) {
-			//				throw new IllegalStateException();
-			//			}
-			//			map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
-			//			map.put("testdata", testInstructions.get(numInstructions - 1).toString());
-			//			map.put("pipeline", om.writeValueAsString(((IReconstructible) metalearner).getConstructionPlan()));
+			// map.put("evaluationinputdata", commonPrefix.toString());
+			// if (map.get("evaluationinputdata").equals("[]")) {
+			// throw new IllegalStateException();
+			// }
+			// map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
+			// map.put("testdata", testInstructions.get(numInstructions - 1).toString());
+			// map.put("pipeline", om.writeValueAsString(((IReconstructible) metalearner).getConstructionPlan()));
 
 			/* verify that the compose data recover to the same */
-			//			ObjectNode composed = om.createObjectNode();
-			//			composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
-			//			ArrayNode an = (ArrayNode) composed.get("instructions");
-			//			JsonNode trainDI = om.readTree(map.get("traindata").toString());
-			//			JsonNode testDI = om.readTree(map.get("testdata").toString());
-			//			an.add(trainDI);
-			//			if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
-			//				throw new IllegalStateException("Reconstruction of train data failed!");
-			//			}
-			//			an.remove(an.size() - 1);
-			//			an.add(testDI);
-			//			if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
-			//				throw new IllegalStateException("Reconstruction of test data failed!");
-			//			}
+			// ObjectNode composed = om.createObjectNode();
+			// composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
+			// ArrayNode an = (ArrayNode) composed.get("instructions");
+			// JsonNode trainDI = om.readTree(map.get("traindata").toString());
+			// JsonNode testDI = om.readTree(map.get("testdata").toString());
+			// an.add(trainDI);
+			// if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
+			// throw new IllegalStateException("Reconstruction of train data failed!");
+			// }
+			// an.remove(an.size() - 1);
+			// an.add(testDI);
+			// if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
+			// throw new IllegalStateException("Reconstruction of test data failed!");
+			// }
 			//
-			//			this.logger.info("{}", map);
-			//			processor.processResults(map);
-			//			map.clear();
+			// this.logger.info("{}", map);
+			// processor.processResults(map);
+			// map.clear();
 		} catch (Throwable e) {
 			mobs.cancel();
 			throw new ExperimentEvaluationFailedException(e);
@@ -218,7 +218,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			TimedComputation.compute(() -> {
 				c.fit(split.get(0));
 				return null;
-			}, this.timeout.milliseconds(), "Experiment timeout exceeded.");
+			}, this.timeout, "Experiment timeout exceeded.");
 			Thread.sleep(1000);
 		} catch (Throwable e) {
 			map.put("train_end", format.format(new Date(System.currentTimeMillis())));
@@ -228,7 +228,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		}
 		map.put("train_end", format.format(new Date(System.currentTimeMillis())));
 		map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
-		(((LeakingBaselearnerWrapper)((SingleClassifierEnhancer) metalearner.getClassifier()).getClassifier())).informThatMetaLearnerHasCompletedTraining();
+		(((LeakingBaselearnerWrapper) ((SingleClassifierEnhancer) metalearner.getClassifier()).getClassifier())).informThatMetaLearnerHasCompletedTraining();
 		this.logger.info("Finished training, now testing on {} data points. Memory peak was {}", split.get(1).size(), map.get("memory_peak"));
 		map.put("test_start", format.format(new Date(System.currentTimeMillis())));
 		List<Integer> gt = new ArrayList<>();
@@ -253,8 +253,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 				testRuntimeStats.addValue(System.currentTimeMillis() - predictionStart);
 				if (gt.size() % 10000 == 0) {
 					this.logger.info("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
-				}
-				else if (this.logger.isDebugEnabled()) {
+				} else if (this.logger.isDebugEnabled()) {
 					this.logger.debug("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
 				}
 			}
@@ -287,7 +286,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 				fieldToTypeMap.put("seed", "INT");
 				fieldToTypeMap.put("baselearner", "VARCHAR(255)");
 				fieldToTypeMap.put("hashCodeOfBaselearner", "LONGTEXT");
-				for (String suffix : new String[] {"training", "prediction"}) {
+				for (String suffix : new String[] { "training", "prediction" }) {
 					fieldToTypeMap.put("numberOfDistributionCalls_" + suffix, "INT");
 					fieldToTypeMap.put("numberOfDistributionSCalls_" + suffix, "INT");
 					fieldToTypeMap.put("numberOfClassifyInstanceCalls_" + suffix, "INT");
@@ -307,12 +306,14 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 				fieldToTypeMap.put("datasetMetafeatures", "LONGTEXT");
 
 				this.container.getAdapter().createTable("additional_information_" + this.metalearnerName, "info_id",
-						Arrays.asList("experiment_id", "openmlid", "datapoints", "seed", "baselearner", "hashCodeOfBaselearner", "numberOfDistributionCalls_training", "numberOfDistributionSCalls_training", "numberOfClassifyInstanceCalls_training",
-								"numberOfBuildClassifierCalls_training", "numberOfMetafeatureComputationCalls_training", "firstDistributionTimestamp_training", "lastDistributionTimestamp_training", "firstDistributionSTimestamp_training", "lastDistributionSTimestamp_training",
-								"firstClassifyInstanceTimestamp_training", "lastClassifyInstanceTimestamp_training", "firstBuildClassifierTimestamp_training", "lastBuildClassifierTimestamp_training", "firstMetafeatureTimestamp_training", "lastMetafeatureTimestamp_training", "numberOfDistributionCalls_prediction", "numberOfDistributionSCalls_prediction", "numberOfClassifyInstanceCalls_prediction",
-								"numberOfBuildClassifierCalls_prediction", "numberOfMetafeatureComputationCalls_prediction", "firstDistributionTimestamp_prediction", "lastDistributionTimestamp_prediction", "firstDistributionSTimestamp_prediction", "lastDistributionSTimestamp_prediction",
-								"firstClassifyInstanceTimestamp_prediction", "lastClassifyInstanceTimestamp_prediction", "firstBuildClassifierTimestamp_prediction", "lastBuildClassifierTimestamp_prediction", "firstMetafeatureTimestamp_prediction", "lastMetafeatureTimestamp_prediction",
-								"datasetMetafeatures"),
+						Arrays.asList("experiment_id", "openmlid", "datapoints", "seed", "baselearner", "hashCodeOfBaselearner", "numberOfDistributionCalls_training", "numberOfDistributionSCalls_training",
+								"numberOfClassifyInstanceCalls_training", "numberOfBuildClassifierCalls_training", "numberOfMetafeatureComputationCalls_training", "firstDistributionTimestamp_training", "lastDistributionTimestamp_training",
+								"firstDistributionSTimestamp_training", "lastDistributionSTimestamp_training", "firstClassifyInstanceTimestamp_training", "lastClassifyInstanceTimestamp_training", "firstBuildClassifierTimestamp_training",
+								"lastBuildClassifierTimestamp_training", "firstMetafeatureTimestamp_training", "lastMetafeatureTimestamp_training", "numberOfDistributionCalls_prediction", "numberOfDistributionSCalls_prediction",
+								"numberOfClassifyInstanceCalls_prediction", "numberOfBuildClassifierCalls_prediction", "numberOfMetafeatureComputationCalls_prediction", "firstDistributionTimestamp_prediction",
+								"lastDistributionTimestamp_prediction", "firstDistributionSTimestamp_prediction", "lastDistributionSTimestamp_prediction", "firstClassifyInstanceTimestamp_prediction",
+								"lastClassifyInstanceTimestamp_prediction", "firstBuildClassifierTimestamp_prediction", "lastBuildClassifierTimestamp_prediction", "firstMetafeatureTimestamp_prediction",
+								"lastMetafeatureTimestamp_prediction", "datasetMetafeatures"),
 						fieldToTypeMap, Arrays.asList("info_id", "experiment_id"));
 			}
 		} catch (SQLException | IOException e) {
@@ -325,8 +326,11 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		this.logger.info("Publishing {} experiment results for experiment #{} to additional information table.", this.baselearnerToEventStatisticsMapTraining.size(), experimentEntry.getId());
 		for (Entry<LeakingBaselearnerWrapper, LeakingBaselearnerEventStatistics> entry : this.baselearnerToEventStatisticsMapTraining.entrySet()) {
 			Map<String, Object> insertableMap = entry.getValue().getAsInsertableMap("training");
-			insertableMap.putAll(this.baselearnerToEventStatisticsMapPrediction.get(entry.getKey()).getAsInsertableMap("prediction"));
-
+			if (this.baselearnerToEventStatisticsMapPrediction.containsKey(entry.getKey())) {
+				insertableMap.putAll(this.baselearnerToEventStatisticsMapPrediction.get(entry.getKey()).getAsInsertableMap("prediction"));
+			} else {
+				insertableMap.putAll(new LeakingBaselearnerEventStatistics(entry.getKey()).getAsInsertableMap("prediction"));
+			}
 			insertableMap.put("hashCodeOfBaselearner", entry.getValue().getHashCodeOfBaselearner());
 			insertableMap.put("datasetMetafeatures", entry.getValue().getDatasetMetafeatures().toString());
 
@@ -387,11 +391,12 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		boolean willFail = failedExperimentsOnThisDataset.stream().anyMatch(e -> {
 			int idOfOther = e.getId();
 			int numInstancesRequiredByOthers = Integer.parseInt(e.getExperiment().getValuesOfKeyFields().get("datapoints"));
-			boolean requiresAtLeastAsManyPointsThanFailed =  numInstancesRequiredByOthers <= datapoints;
+			boolean requiresAtLeastAsManyPointsThanFailed = numInstancesRequiredByOthers <= datapoints;
 			String errorMsg = e.getExperiment().getError().toLowerCase();
 			boolean otherFailedDueToTooFewInstances = errorMsg.contains("dataset has not sufficient datapoints");
 			if (requiresAtLeastAsManyPointsThanFailed && otherFailedDueToTooFewInstances) {
-				reasonString.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " +  datapoints + ").");
+				reasonString
+						.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " + datapoints + ").");
 				return true;
 			}
 			boolean otherTimedOut = errorMsg.contains("timeout");

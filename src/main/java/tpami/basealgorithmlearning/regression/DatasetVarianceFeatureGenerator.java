@@ -34,7 +34,6 @@ public class DatasetVarianceFeatureGenerator implements IDatasetFeatureMapper {
 
 	@Override
 	public Map<String, Object> getFeatureRepresentation(final ILabeledDataset<?> dataset) throws Exception {
-
 		Map<String, Object> features = new HashMap<>();
 		INDArray matrix = this.datasetToArray(dataset);
 		INDArray var = matrix.var(0);
@@ -59,7 +58,7 @@ public class DatasetVarianceFeatureGenerator implements IDatasetFeatureMapper {
 		int consideredAtts = 0;
 		for (double v : varianceInDescendingOrder) {
 			vCoverage += v;
-			consideredAtts ++;
+			consideredAtts++;
 			if (cov50 < 0 && vCoverage / totalVariance >= .5) {
 				cov50 = consideredAtts;
 			}
@@ -87,21 +86,21 @@ public class DatasetVarianceFeatureGenerator implements IDatasetFeatureMapper {
 				varianceInDescendingOrder.remove(0);
 			}
 			accVar += nextBiggestVariance;
-			features.put(this.prefix + "accvarianceabs" + (i+1) + this.suffix, accVar);
-			features.put(this.prefix + "accvariancerel" + (i+1) + this.suffix, accVar / totalVariance);
+			features.put(this.prefix + "accvarianceabs" + (i + 1) + this.suffix, accVar);
+			features.put(this.prefix + "accvariancerel" + (i + 1) + this.suffix, accVar / totalVariance);
 		}
 
 		/* compute relative accumulated variances */
-		//		int nCov = 10;
-		//		double accCovar = 0;
-		//		for (int i = 0; i < nCov; i++) {
-		//			int entry = cov.argMax().getInt(0);
-		//			double nextBiggestCovariance = cov.getDouble(entry);
-		//			cov.putScalar(entry, 0);
-		//			accCovar += nextBiggestCovariance;
-		//			features.put(this.prefix + "acccovarianceabs" + (i+1) + this.suffix, accCovar);
-		//			features.put(this.prefix + "acccovariancerel" + (i+1) + this.suffix, accCovar / absoluteLinearRelationShip);
-		//		}
+		// int nCov = 10;
+		// double accCovar = 0;
+		// for (int i = 0; i < nCov; i++) {
+		// int entry = cov.argMax().getInt(0);
+		// double nextBiggestCovariance = cov.getDouble(entry);
+		// cov.putScalar(entry, 0);
+		// accCovar += nextBiggestCovariance;
+		// features.put(this.prefix + "acccovarianceabs" + (i+1) + this.suffix, accCovar);
+		// features.put(this.prefix + "acccovariancerel" + (i+1) + this.suffix, accCovar / absoluteLinearRelationShip);
+		// }
 		return features;
 	}
 

@@ -1,4 +1,5 @@
 package tpami.basealgorithmlearning.datagathering.preprocessing;
+
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -56,7 +57,6 @@ public class PreprocessingExperimenter {
 		PreprocessorConfigContainer container = new PreprocessorConfigContainer(configFile, searcherClass.getSimpleName(), evaluatorClass.getSimpleName());
 		databaseHandle = container.getDatabaseHandle();
 
-
 		/* starting memory observer */
 		LOGGER.info("Creating memory observer");
 		final PeakMemoryObserver mobs = new PeakMemoryObserver();
@@ -64,7 +64,6 @@ public class PreprocessingExperimenter {
 
 		final BasicDatasetFeatureGenerator fmBasic = new BasicDatasetFeatureGenerator();
 		final DatasetVarianceFeatureGenerator fmVariance = new DatasetVarianceFeatureGenerator();
-
 
 		/* run an experiment */
 		LOGGER.info("Creating the runner.");
@@ -90,7 +89,8 @@ public class PreprocessingExperimenter {
 					knownFailedExperimentsOfDatasets.put(openmlid, failedExperimentsOnThisDataset);
 					checkFail(failedExperimentsOnThisDataset, datapoints, attributes);
 
-					LOGGER.info("Did not find any reason to believe that this experiment will fail. Running {}/{} on dataset {} with seed {}, {} data points and {} attributes.", searcherClass.getSimpleName(), evaluatorClass.getSimpleName(), openmlid, seed, datapoints, attributes);
+					LOGGER.info("Did not find any reason to believe that this experiment will fail. Running {}/{} on dataset {} with seed {}, {} data points and {} attributes.", searcherClass.getSimpleName(), evaluatorClass.getSimpleName(),
+							openmlid, seed, datapoints, attributes);
 					Map<String, Object> map = new HashMap<>();
 
 					/* load dataset and reduce dimensionality */
@@ -139,7 +139,10 @@ public class PreprocessingExperimenter {
 					if (data.getNumAttributes() != attributes) {
 						throw new IllegalStateException("Number of attributes is " + data.getNumAttributes() + " but should be " + attributes);
 					}
-					TimedComputation.compute(() -> { as.SelectAttributes(data.getInstances()); return null;}, to.milliseconds(), "Experiment timeout exceeded.");
+					TimedComputation.compute(() -> {
+						as.SelectAttributes(data.getInstances());
+						return null;
+					}, new Timeout(to.milliseconds(), TimeUnit.MILLISECONDS), "Experiment timeout exceeded.");
 					map.put("time_alg_end", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					map.put("time_alg_apply_start", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					LOGGER.info("Algorithm finished at {}. Now computing features of dataset with reduced dimensionality.", map.get("time_alg_end"));
@@ -159,11 +162,9 @@ public class PreprocessingExperimenter {
 					map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
 					processor.processResults(map);
 					LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map);
-				}
-				catch (ExperimentFailurePredictionException e) {
+				} catch (ExperimentFailurePredictionException e) {
 					throw e;
-				}
-				catch (Throwable e) {
+				} catch (Throwable e) {
 					System.err.println("ENCAPSUALTING ERROR!");
 					e.printStackTrace();
 					throw new ExperimentEvaluationFailedException(e);
@@ -183,8 +184,7 @@ public class PreprocessingExperimenter {
 					LOGGER.info("No more experiments.");
 					System.exit(0);
 				}
-			}
-			catch (Throwable e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}

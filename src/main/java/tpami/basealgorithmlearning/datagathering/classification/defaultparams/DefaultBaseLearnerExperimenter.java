@@ -1,4 +1,5 @@
 package tpami.basealgorithmlearning.datagathering.classification.defaultparams;
+
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -50,12 +51,11 @@ public class DefaultBaseLearnerExperimenter {
 
 	public static void main(final String[] args) throws Exception {
 
-
-		//		/* prepare database */
-		//		ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
-		//		preparer.setLoggerName("example");
-		//		preparer.synchronizeExperiments();
-		//		System.exit(0);
+		// /* prepare database */
+		// ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
+		// preparer.setLoggerName("example");
+		// preparer.synchronizeExperiments();
+		// System.exit(0);
 
 		DefaultBaseLearnerConfigContainer container = new DefaultBaseLearnerConfigContainer(args[0], args[1]);
 		Class<?> classifierClass = Class.forName(args[1]);
@@ -87,10 +87,10 @@ public class DefaultBaseLearnerExperimenter {
 				IWekaClassifier cTmp = null;
 				Optional<IKVStore> rowInBoundTable = null;
 				try {
-					Dataset ds = (Dataset)OpenMLDatasetReader.deserializeDataset(openmlid);
+					Dataset ds = (Dataset) OpenMLDatasetReader.deserializeDataset(openmlid);
 					if (ds.getLabelAttribute() instanceof INumericAttribute) {
 						LOGGER.info("Converting numeric dataset to classification dataset!");
-						ds = (Dataset)DatasetUtil.convertToClassificationDataset(ds);
+						ds = (Dataset) DatasetUtil.convertToClassificationDataset(ds);
 					}
 
 					/* check whether the dataset is reproducible */
@@ -114,10 +114,10 @@ public class DefaultBaseLearnerExperimenter {
 					splitTmp = SplitterUtil.getLabelStratifiedTrainTestSplit(ds, seed, portion);
 
 					/* get json describing training and test data */
-					JsonNode trainNode = om.valueToTree(((IReconstructible)splitTmp.get(0)).getConstructionPlan());
-					JsonNode testNode = om.valueToTree(((IReconstructible)splitTmp.get(1)).getConstructionPlan());
-					ArrayNode trainInstructions = (ArrayNode)trainNode.get("instructions");
-					ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
+					JsonNode trainNode = om.valueToTree(((IReconstructible) splitTmp.get(0)).getConstructionPlan());
+					JsonNode testNode = om.valueToTree(((IReconstructible) splitTmp.get(1)).getConstructionPlan());
+					ArrayNode trainInstructions = (ArrayNode) trainNode.get("instructions");
+					ArrayNode testInstructions = (ArrayNode) testNode.get("instructions");
 					ArrayNode commonPrefix = om.createArrayNode();
 					int numInstructions = trainInstructions.size();
 					LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
@@ -132,10 +132,10 @@ public class DefaultBaseLearnerExperimenter {
 					}
 
 					/* create classifier */
-					//					ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
-					//					preparer.setLoggerName("example");
-					//					preparer.synchronizeExperiments();
-					//					Syst
+					// ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(config, databaseHandle);
+					// preparer.setLoggerName("example");
+					// preparer.synchronizeExperiments();
+					// Syst
 					cTmp = new WekaClassifier(AbstractClassifier.forName(classifierClass.getName(), null));
 
 					/* now write core data about this experiment */
@@ -145,12 +145,12 @@ public class DefaultBaseLearnerExperimenter {
 					}
 					map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
 					map.put("testdata", testInstructions.get(numInstructions - 1).toString());
-					map.put("pipeline", om.writeValueAsString(((IReconstructible)cTmp).getConstructionPlan()));
+					map.put("pipeline", om.writeValueAsString(((IReconstructible) cTmp).getConstructionPlan()));
 
 					/* verify that the compose data recover to the same */
 					ObjectNode composed = om.createObjectNode();
 					composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
-					ArrayNode an = (ArrayNode)composed.get("instructions");
+					ArrayNode an = (ArrayNode) composed.get("instructions");
 					JsonNode trainDI = om.readTree(map.get("traindata").toString());
 					JsonNode testDI = om.readTree(map.get("testdata").toString());
 					an.add(trainDI);
@@ -166,8 +166,7 @@ public class DefaultBaseLearnerExperimenter {
 					LOGGER.info("{}", map);
 					processor.processResults(map);
 					map.clear();
-				}
-				catch (Throwable e) {
+				} catch (Throwable e) {
 					throw new ExperimentEvaluationFailedException(e);
 				}
 				final List<ILabeledDataset<?>> split = splitTmp;
@@ -175,14 +174,18 @@ public class DefaultBaseLearnerExperimenter {
 
 				/* now train classifier */
 				SimpleDateFormat format = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
-				map.put("train_start",  format.format(new Date(System.currentTimeMillis())));
+				map.put("train_start", format.format(new Date(System.currentTimeMillis())));
 				long deadlinetimestamp = System.currentTimeMillis() + to.milliseconds();
 				try {
 					mobs.reset();
-					TimedComputation.compute(() -> { c.fit(split.get(0)); return null;}, to.milliseconds(), "Experiment timeout exceeded.");
+					TimedComputation.compute(() -> {
+						c.fit(split.get(0));
+						return null;
+					}, new Timeout(to.milliseconds(), TimeUnit.MILLISECONDS), "Experiment timeout exceeded.");
+
 					Thread.sleep(1000);
 				} catch (Throwable e) {
-					map.put("train_end",  format.format(new Date(System.currentTimeMillis())));
+					map.put("train_end", format.format(new Date(System.currentTimeMillis())));
 					processor.processResults(map);
 					if (e instanceof AlgorithmTimeoutedException) {
 						try {
@@ -193,10 +196,10 @@ public class DefaultBaseLearnerExperimenter {
 					}
 					throw new ExperimentEvaluationFailedException(e);
 				}
-				map.put("train_end",  format.format(new Date(System.currentTimeMillis())));
+				map.put("train_end", format.format(new Date(System.currentTimeMillis())));
 				map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
 				LOGGER.info("Finished training, now testing. Memory peak was {}", map.get("memory_peak"));
-				map.put("test_start",  format.format(new Date(System.currentTimeMillis())));
+				map.put("test_start", format.format(new Date(System.currentTimeMillis())));
 				List<Integer> gt = new ArrayList<>();
 				List<Integer> pr = new ArrayList<>();
 				try {
@@ -207,18 +210,17 @@ public class DefaultBaseLearnerExperimenter {
 							lastTimeoutCheck = System.currentTimeMillis();
 							long remainingTime = deadlinetimestamp - lastTimeoutCheck;
 							LOGGER.debug("Remaining time for this classifier: {}", remainingTime);
-							if (remainingTime <=  0) {
+							if (remainingTime <= 0) {
 								LOGGER.info("Triggering timeout ...");
 								throw new AlgorithmTimeoutedException(0);
 							}
 						}
-						gt.add((int)i.getLabel());
-						pr.add((int)c.predict(i).getPrediction());
+						gt.add((int) i.getLabel());
+						pr.add((int) c.predict(i).getPrediction());
 						LOGGER.info("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
 					}
-				}
-				catch (Throwable e) {
-					map.put("test_end",  format.format(new Date(System.currentTimeMillis())));
+				} catch (Throwable e) {
+					map.put("test_end", format.format(new Date(System.currentTimeMillis())));
 					processor.processResults(map);
 					throw new ExperimentEvaluationFailedException(e);
 				}
@@ -226,7 +228,7 @@ public class DefaultBaseLearnerExperimenter {
 				map.put("gt", gt);
 				map.put("pr", pr);
 				processor.processResults(map);
-				LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(),  map);
+				LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map);
 			}
 		}, databaseHandle);
 
@@ -239,8 +241,7 @@ public class DefaultBaseLearnerExperimenter {
 			LOGGER.info("Conducting next experiment.");
 			try {
 				runner.randomlyConductExperiments(1);
-			}
-			catch (Throwable e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}
@@ -266,8 +267,7 @@ public class DefaultBaseLearnerExperimenter {
 		errorMap.put("datapoints", datapoints);
 		if (!rowInBoundTable.isPresent()) {
 			adapter.insert("executionbounds_" + classifierWorkingName, errorMap);
-		}
-		else if (datapoints < rowInBoundTable.get().getAsInt("datapoints")) {
+		} else if (datapoints < rowInBoundTable.get().getAsInt("datapoints")) {
 			Map<String, Object> condMap = new HashMap<>();
 			condMap.put("openmlid", openmlid);
 			adapter.update("executionbounds_" + classifierWorkingName, errorMap, condMap);

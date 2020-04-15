@@ -1,4 +1,5 @@
 package tpami.basealgorithmlearning.datagathering.classification.parametrized;
+
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -88,15 +89,15 @@ public class BaseLearnerExperimenter {
 					checkFail(knownFailedExperimentsOfDatasets.get(openmlid), datapoints, keys.get("algorithmoptions"));
 					LOGGER.info("Did not find any reason to believe that this experiment will fail based on earlier insights.");
 					int MIN = 15;
-					if (System.currentTimeMillis() - timestampOfLastErrorQueriesPerDataset.computeIfAbsent(openmlid, id -> (long)0) > 1000 * 60 * MIN) {
+					if (System.currentTimeMillis() - timestampOfLastErrorQueriesPerDataset.computeIfAbsent(openmlid, id -> (long) 0) > 1000 * 60 * MIN) {
 						LOGGER.info("Last check was at least {} minutes ago, checking again.", MIN);
 						Collection<ExperimentDBEntry> failedExperimentsOnThisDataset = databaseHandle.getFailedExperiments(comparisonExperiments);
 						knownFailedExperimentsOfDatasets.put(openmlid, failedExperimentsOnThisDataset);
 						timestampOfLastErrorQueriesPerDataset.put(openmlid, System.currentTimeMillis());
 						checkFail(failedExperimentsOnThisDataset, datapoints, keys.get("algorithmoptions"));
-						LOGGER.info("Did not find any reason to believe that this experiment will fail. Running {} with options {} on dataset {} with seed {} and {} data points.", classifierClass.getName(), keys.get("algorithmoptions"), openmlid, seed, datapoints);
-					}
-					else {
+						LOGGER.info("Did not find any reason to believe that this experiment will fail. Running {} with options {} on dataset {} with seed {} and {} data points.", classifierClass.getName(), keys.get("algorithmoptions"),
+								openmlid, seed, datapoints);
+					} else {
 						LOGGER.info("Last check was within last {} minutes ago, not checking but conducting (blindly trusting that this experiment is not dominated by some other finished meanwhile).", MIN);
 					}
 
@@ -105,10 +106,10 @@ public class BaseLearnerExperimenter {
 					/* load dataset */
 					List<ILabeledDataset<?>> splitTmp = null;
 					IWekaClassifier cTmp = null;
-					Dataset ds = (Dataset)OpenMLDatasetReader.deserializeDataset(openmlid);
+					Dataset ds = (Dataset) OpenMLDatasetReader.deserializeDataset(openmlid);
 					if (ds.getLabelAttribute() instanceof INumericAttribute) {
 						LOGGER.info("Converting numeric dataset to classification dataset!");
-						ds = (Dataset)DatasetUtil.convertToClassificationDataset(ds);
+						ds = (Dataset) DatasetUtil.convertToClassificationDataset(ds);
 					}
 
 					/* check whether the dataset is reproducible */
@@ -124,77 +125,80 @@ public class BaseLearnerExperimenter {
 					splitTmp = SplitterUtil.getLabelStratifiedTrainTestSplit(ds, seed, portion);
 
 					/* get json describing training and test data */
-					//					JsonNode trainNode = om.valueToTree(((IReconstructible)splitTmp.get(0)).getConstructionPlan());
-					//					JsonNode testNode = om.valueToTree(((IReconstructible)splitTmp.get(1)).getConstructionPlan());
-					//					ArrayNode trainInstructions = (ArrayNode)trainNode.get("instructions");
-					//					ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
-					//					ArrayNode commonPrefix = om.createArrayNode();
-					//					int numInstructions = trainInstructions.size();
-					//					LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
-					//					for (int i = 0; i < numInstructions - 1; i++) {
-					//						if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
-					//							throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
-					//						}
-					//						commonPrefix.add(trainInstructions.get(i));
-					//					}
-					//					if (commonPrefix.size() == 0) {
-					//						throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
-					//					}
+					// JsonNode trainNode = om.valueToTree(((IReconstructible)splitTmp.get(0)).getConstructionPlan());
+					// JsonNode testNode = om.valueToTree(((IReconstructible)splitTmp.get(1)).getConstructionPlan());
+					// ArrayNode trainInstructions = (ArrayNode)trainNode.get("instructions");
+					// ArrayNode testInstructions = (ArrayNode)testNode.get("instructions");
+					// ArrayNode commonPrefix = om.createArrayNode();
+					// int numInstructions = trainInstructions.size();
+					// LOGGER.info("Train instructions consist of {} instructions.", numInstructions);
+					// for (int i = 0; i < numInstructions - 1; i++) {
+					// if (!trainInstructions.get(i).equals(testInstructions.get(i))) {
+					// throw new IllegalStateException("Train and test data do not have common prefix!\nTrain: " + trainInstructions.get(i) + "\nTest: " + testInstructions.get(i));
+					// }
+					// commonPrefix.add(trainInstructions.get(i));
+					// }
+					// if (commonPrefix.size() == 0) {
+					// throw new IllegalStateException("The common prefix of train and test data must not be empty.\nTrain instructions:\n" + trainInstructions + "\nTest instructions:\n" + testInstructions);
+					// }
 
 					/* create classifier */
 					cTmp = new WekaClassifier(AbstractClassifier.forName(classifierClass.getName(), options));
-					LOGGER.info("Actual option description of the created classifier: {}", Arrays.toString(((OptionHandler)cTmp.getClassifier()).getOptions()));
+					LOGGER.info("Actual option description of the created classifier: {}", Arrays.toString(((OptionHandler) cTmp.getClassifier()).getOptions()));
 
-					//					/* now write core data about this experiment */
-					//					map.put("evaluationinputdata", commonPrefix.toString());
-					//					if (map.get("evaluationinputdata").equals("[]")) {
-					//						throw new IllegalStateException();
-					//					}
-					//					map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
-					//					map.put("testdata", testInstructions.get(numInstructions - 1).toString());
-					//					map.put("pipeline", om.writeValueAsString(((IReconstructible)cTmp).getConstructionPlan()));
+					// /* now write core data about this experiment */
+					// map.put("evaluationinputdata", commonPrefix.toString());
+					// if (map.get("evaluationinputdata").equals("[]")) {
+					// throw new IllegalStateException();
+					// }
+					// map.put("traindata", trainInstructions.get(numInstructions - 1).toString());
+					// map.put("testdata", testInstructions.get(numInstructions - 1).toString());
+					// map.put("pipeline", om.writeValueAsString(((IReconstructible)cTmp).getConstructionPlan()));
 					//
-					//					/* verify that the compose data recover to the same */
-					//					ObjectNode composed = om.createObjectNode();
-					//					composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
-					//					ArrayNode an = (ArrayNode)composed.get("instructions");
-					//					JsonNode trainDI = om.readTree(map.get("traindata").toString());
-					//					JsonNode testDI = om.readTree(map.get("testdata").toString());
-					//					an.add(trainDI);
-					//					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
-					//						throw new IllegalStateException("Reconstruction of train data failed!");
-					//					}
-					//					an.remove(an.size() - 1);
-					//					an.add(testDI);
-					//					if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
-					//						throw new IllegalStateException("Reconstruction of test data failed!");
-					//					}
+					// /* verify that the compose data recover to the same */
+					// ObjectNode composed = om.createObjectNode();
+					// composed.set("instructions", om.readTree(map.get("evaluationinputdata").toString()));
+					// ArrayNode an = (ArrayNode)composed.get("instructions");
+					// JsonNode trainDI = om.readTree(map.get("traindata").toString());
+					// JsonNode testDI = om.readTree(map.get("testdata").toString());
+					// an.add(trainDI);
+					// if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(0))) {
+					// throw new IllegalStateException("Reconstruction of train data failed!");
+					// }
+					// an.remove(an.size() - 1);
+					// an.add(testDI);
+					// if (!om.readValue(composed.toString(), ReconstructionPlan.class).reconstructObject().equals(splitTmp.get(1))) {
+					// throw new IllegalStateException("Reconstruction of test data failed!");
+					// }
 					//
-					//					LOGGER.info("{}", map);
-					//					processor.processResults(map);
-					//					map.clear();
+					// LOGGER.info("{}", map);
+					// processor.processResults(map);
+					// map.clear();
 
 					final List<ILabeledDataset<?>> split = splitTmp;
 					final IWekaClassifier c = cTmp;
 
 					/* now train classifier */
-					map.put("train_start",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+					map.put("train_start", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					long deadlinetimestamp = System.currentTimeMillis() + to.milliseconds();
 					try {
 						mobs.reset();
-						TimedComputation.compute(() -> { c.fit(split.get(0)); return null;}, to.milliseconds(), "Experiment timeout exceeded.");
+						TimedComputation.compute(() -> {
+							c.fit(split.get(0));
+							return null;
+						}, new Timeout(to.milliseconds(), TimeUnit.MILLISECONDS), "Experiment timeout exceeded.");
 						Thread.sleep(1000);
 					} catch (Throwable e) {
-						map.put("train_end",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+						map.put("train_end", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 						processor.processResults(map);
 						throw e;
 					}
-					map.put("train_end",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+					map.put("train_end", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					map.put("memory_peak", mobs.getMaxMemoryConsumptionObserved());
 					processor.processResults(map);
 					map.clear();
 					LOGGER.info("Finished training, now testing. Memory peak was {}", map.get("memory_peak"));
-					map.put("test_start",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+					map.put("test_start", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 					List<Integer> gt = new ArrayList<>();
 					List<Integer> pr = new ArrayList<>();
 					try {
@@ -205,18 +209,17 @@ public class BaseLearnerExperimenter {
 								lastTimeoutCheck = System.currentTimeMillis();
 								long remainingTime = deadlinetimestamp - lastTimeoutCheck;
 								LOGGER.debug("Remaining time for this classifier: {}", remainingTime);
-								if (remainingTime <=  0) {
+								if (remainingTime <= 0) {
 									LOGGER.info("Triggering timeout ...");
 									throw new AlgorithmTimeoutedException(0);
 								}
 							}
-							gt.add((int)i.getLabel());
-							pr.add((int)c.predict(i).getPrediction());
+							gt.add((int) i.getLabel());
+							pr.add((int) c.predict(i).getPrediction());
 							LOGGER.debug("{}/{} ({}%)", gt.size(), n, gt.size() * 100.0 / n);
 						}
-					}
-					catch (Throwable e) {
-						map.put("test_end",  DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+					} catch (Throwable e) {
+						map.put("test_end", DATE_FORMAT.format(new Date(System.currentTimeMillis())));
 						processor.processResults(map);
 						throw e;
 					}
@@ -224,16 +227,15 @@ public class BaseLearnerExperimenter {
 					map.put("gt", gt);
 					map.put("pr", pr);
 					processor.processResults(map);
-					LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(),  map);
+					LOGGER.info("Finished Experiment {}. Results: {}", experimentEntry.getExperiment().getValuesOfKeyFields(), map);
 
-				}
-				catch (ExperimentFailurePredictionException e) {
+				} catch (ExperimentFailurePredictionException e) {
 					throw e;
-				}
-				catch (Throwable e) {
+				} catch (Throwable e) {
 					throw new ExperimentEvaluationFailedException(e);
 				}
-			}}, databaseHandle);
+			}
+		}, databaseHandle);
 
 		LOGGER.info("Runner created.");
 
@@ -244,8 +246,7 @@ public class BaseLearnerExperimenter {
 			LOGGER.info("Conducting next experiment.");
 			try {
 				runner.randomlyConductExperiments(1);
-			}
-			catch (Throwable e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}
@@ -265,11 +266,12 @@ public class BaseLearnerExperimenter {
 		boolean willFail = failedExperimentsOnThisDataset.stream().anyMatch(e -> {
 			int idOfOther = e.getId();
 			int numInstancesRequiredByOthers = Integer.parseInt(e.getExperiment().getValuesOfKeyFields().get("datapoints"));
-			boolean requiresAtLeastAsManyPointsThanFailed =  numInstancesRequiredByOthers <= datapoints;
+			boolean requiresAtLeastAsManyPointsThanFailed = numInstancesRequiredByOthers <= datapoints;
 			String errorMsg = e.getExperiment().getError().toLowerCase();
 			boolean otherFailedDueToTooFewInstances = errorMsg.contains("dataset has not sufficient datapoints");
 			if (requiresAtLeastAsManyPointsThanFailed && otherFailedDueToTooFewInstances) {
-				reasonString.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " +  datapoints + ").");
+				reasonString
+						.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " + datapoints + ").");
 				return true;
 			}
 			boolean otherTimedOut = errorMsg.contains("timeout");

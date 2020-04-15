@@ -4,8 +4,8 @@ import java.io.File;
 
 import org.aeonbits.owner.ConfigFactory;
 
-import ai.libs.jaicore.db.sql.rest.IRestDatabaseConfig;
-import ai.libs.jaicore.db.sql.rest.RestSqlAdapter;
+import ai.libs.jaicore.db.IDatabaseConfig;
+import ai.libs.jaicore.db.sql.SQLAdapter;
 import ai.libs.jaicore.experiments.IExperimentDatabaseHandle;
 import ai.libs.jaicore.experiments.databasehandle.ExperimenterMySQLHandle;
 import tpami.basealgorithmlearning.datagathering.classification.defaultparams.IDefaultBaseLearnerExperimentConfig;
@@ -29,9 +29,9 @@ public class PreprocessorConfigContainer {
 
 		/* setup database connection */
 		//		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class);
-		IRestDatabaseConfig dbConfig = ConfigFactory.create(IRestDatabaseConfig.class);
+		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class);
 		dbConfig.loadPropertiesFromFile(new File(dbconfig));
-		final RestSqlAdapter adapter = new RestSqlAdapter(dbConfig);
+		final SQLAdapter adapter = new SQLAdapter(dbConfig);
 		this.databaseHandle = new ExperimenterMySQLHandle(adapter, "evaluations_preprocessors_" + searcher + "_" + evaluator);
 	}
 
