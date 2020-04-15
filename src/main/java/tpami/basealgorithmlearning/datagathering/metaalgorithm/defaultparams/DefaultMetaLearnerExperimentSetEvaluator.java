@@ -130,8 +130,8 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			}
 
 			this.logger.info("Label: {} ... {}", ds.getLabelAttribute().getClass().getName(), ds.getLabelAttribute().getStringDescriptionOfDomain());
-			if (datapoints > ds.size()) {
-				throw new IllegalStateException("Ddataset has not sufficient datapoints.");
+			if (datapoints >= ds.size()) { // also forbid to use 100% of the data for training (no testing possible)
+				throw new IllegalStateException("Dataset has not sufficient datapoints.");
 			}
 			double portion = datapoints * 1.0 / ds.size();
 			splitTmp = SplitterUtil.getLabelStratifiedTrainTestSplit(ds, seed, portion);
@@ -325,8 +325,12 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 		this.logger.info("Publishing {} experiment results for experiment #{} to additional information table.", this.baselearnerToEventStatisticsMapTraining.size(), experimentEntry.getId());
 		for (Entry<LeakingBaselearnerWrapper, LeakingBaselearnerEventStatistics> entry : this.baselearnerToEventStatisticsMapTraining.entrySet()) {
 			Map<String, Object> insertableMap = entry.getValue().getAsInsertableMap("training");
-			insertableMap.putAll(this.baselearnerToEventStatisticsMapPrediction.get(entry.getKey()).getAsInsertableMap("prediction"));
-
+			if (this.baselearnerToEventStatisticsMapPrediction.containsKey(entry.getKey())) {
+				insertableMap.putAll(this.baselearnerToEventStatisticsMapPrediction.get(entry.getKey()).getAsInsertableMap("prediction"));
+			}
+			else {
+				insertableMap.putAll(new LeakingBaselearnerEventStatistics(entry.getKey()).getAsInsertableMap("prediction"));
+			}
 			insertableMap.put("hashCodeOfBaselearner", entry.getValue().getHashCodeOfBaselearner());
 			insertableMap.put("datasetMetafeatures", entry.getValue().getDatasetMetafeatures().toString());
 

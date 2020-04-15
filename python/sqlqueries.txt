@@ -168,3 +168,24 @@ SELECT 'SymmetricalUncertAS' as algo, time_alg_end-time_alg_start as traintime, 
 ## get results of parametrized learners
 SELECT experiment_id, openmlid,datapoints,algorithmoptions,seed,train_end-train_start as traintime, test_end-test_start testtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception FROM `evaluations_classifiers_bayesnet_configured`
 
+
+
+
+
+
+
+
+
+
+
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'adaboostm1' as classifier, baselearner, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception  FROM evaluations_metaclassifiers_adaboostm1 where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bagging' as classifier, baselearner, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception  FROM evaluations_metaclassifiers_bagging where time_end is not null
+
+
+SELECT algorithm, executordetails, n from (
+    select 'adaboost' as algorithm, executordetails, count(*) AS `n` from  `evaluations_metaclassifiers_adaboostm1` where `time_started` is not null and `time_end` IS NULL group by `algorithm`, `executordetails`
+    union
+    select 'bagging' as algorithm, executordetails, count(*) AS `n` from  `evaluations_metaclassifiers_bagging` where `time_started` is not null and `time_end` IS NULL group by `algorithm`, `executordetails`
+    ) as `t`
+  where (`t`.`n` > 1)
