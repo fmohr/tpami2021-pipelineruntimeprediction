@@ -32,176 +32,175 @@ public class LeakingBaselearnerEventStatistics {
 
 	private Exception exception;
 
-	public LeakingBaselearnerEventStatistics(LeakingBaselearnerWrapper leakingBaselearnerWrapper) {
-		hashCodeOfBaselearner = leakingBaselearnerWrapper.hashCode();
+	public LeakingBaselearnerEventStatistics(final LeakingBaselearnerWrapper leakingBaselearnerWrapper) {
+		this.hashCodeOfBaselearner = leakingBaselearnerWrapper.hashCode();
 	}
 
-	public void parseEvent(LeakingBaselearnerEvent event) {
+	public void parseEvent(final LeakingBaselearnerEvent event) {
 		switch (event.getEventType()) {
 		case START_CLASSIFY:
-			numberOfClassifyInstanceCalls++;
-			if (event.getTimestamp() < firstClassifyInstanceTimestamp) {
-				firstClassifyInstanceTimestamp = event.getTimestamp();
+			this.numberOfClassifyInstanceCalls++;
+			if (event.getTimestamp() < this.firstClassifyInstanceTimestamp) {
+				this.firstClassifyInstanceTimestamp = event.getTimestamp();
 			}
 			break;
 		case STOP_CLASSIFY:
-			if (event.getTimestamp() > lastClassifyInstanceTimestamp) {
-				lastClassifyInstanceTimestamp = event.getTimestamp();
+			if (event.getTimestamp() > this.lastClassifyInstanceTimestamp) {
+				this.lastClassifyInstanceTimestamp = event.getTimestamp();
 			}
 			break;
 		case START_DISTRIBUTION:
-			numberOfDistributionCalls++;
-			if (event.getTimestamp() < firstDistributionTimestamp) {
-				firstDistributionTimestamp = event.getTimestamp();
+			this.numberOfDistributionCalls++;
+			if (event.getTimestamp() < this.firstDistributionTimestamp) {
+				this.firstDistributionTimestamp = event.getTimestamp();
 			}
 			break;
 		case STOP_DISTRIBUTION:
-			if (event.getTimestamp() > lastDistributionTimestamp) {
-				lastDistributionTimestamp = event.getTimestamp();
+			if (event.getTimestamp() > this.lastDistributionTimestamp) {
+				this.lastDistributionTimestamp = event.getTimestamp();
 			}
 			break;
 		case START_DISTRIBUTIONS:
-			numberOfDistributionSCalls++;
-			if (event.getTimestamp() < firstDistributionSTimestamp) {
-				firstDistributionSTimestamp = event.getTimestamp();
+			this.numberOfDistributionSCalls++;
+			if (event.getTimestamp() < this.firstDistributionSTimestamp) {
+				this.firstDistributionSTimestamp = event.getTimestamp();
 			}
 			break;
 		case STOP_DISTRIBUTIONS:
-			if (event.getTimestamp() > lastDistributionSTimestamp) {
-				lastDistributionSTimestamp = event.getTimestamp();
+			if (event.getTimestamp() > this.lastDistributionSTimestamp) {
+				this.lastDistributionSTimestamp = event.getTimestamp();
 			}
 			break;
 		case START_BUILD_CLASSIFIER:
-			numberOfBuildClassifierCalls++;
-			if (event.getTimestamp() < firstBuildClassifierTimestamp) {
-				firstBuildClassifierTimestamp = event.getTimestamp();
+			this.numberOfBuildClassifierCalls++;
+			if (event.getTimestamp() < this.firstBuildClassifierTimestamp) {
+				this.firstBuildClassifierTimestamp = event.getTimestamp();
 			}
 			break;
 
 		case STOP_BUILD_CLASSIFIER:
-			if (event.getTimestamp() > lastBuildClassifierTimestamp) {
-				lastBuildClassifierTimestamp = event.getTimestamp();
+			if (event.getTimestamp() > this.lastBuildClassifierTimestamp) {
+				this.lastBuildClassifierTimestamp = event.getTimestamp();
 			}
 			break;
 
 		case START_METAFEATURE_COMPUTATION:
-			numberOfMetafeatureComputationCalls++;
-			if (event.getTimestamp() < firstMetafeatureTimestamp) {
-				firstMetafeatureTimestamp = event.getTimestamp();
+			this.numberOfMetafeatureComputationCalls++;
+			if (event.getTimestamp() < this.firstMetafeatureTimestamp) {
+				this.firstMetafeatureTimestamp = event.getTimestamp();
 			}
 			break;
 
 		case STOP_METAFEATURE_COMPUTATION:
-			if (event.getTimestamp() > lastMetafeatureTimestamp) {
-				lastMetafeatureTimestamp = event.getTimestamp();
+			if (event.getTimestamp() > this.lastMetafeatureTimestamp) {
+				this.lastMetafeatureTimestamp = event.getTimestamp();
 			}
-			datasetMetafeatures = event.getDatasetMetafeatures();
+			this.datasetMetafeatures = event.getDatasetMetafeatures();
 			break;
 		case EXCEPTION:
-			exception = event.getException();
+			this.exception = event.getException();
 		}
 	}
 
 	public int getNumberOfDistributionCalls() {
-		return numberOfDistributionCalls;
+		return this.numberOfDistributionCalls;
 	}
 
 	public int getNumberOfDistributionSCalls() {
-		return numberOfDistributionSCalls;
+		return this.numberOfDistributionSCalls;
 	}
 
 	public int getNumberOfClassifyInstanceCalls() {
-		return numberOfClassifyInstanceCalls;
+		return this.numberOfClassifyInstanceCalls;
 	}
 
 	public int getNumberOfBuildClassifierCalls() {
-		return numberOfBuildClassifierCalls;
+		return this.numberOfBuildClassifierCalls;
 	}
 
 	public int getNumberOfMetafeatureComputationCalls() {
-		return numberOfMetafeatureComputationCalls;
+		return this.numberOfMetafeatureComputationCalls;
 	}
 
 	public long getHashCodeOfBaselearner() {
-		return hashCodeOfBaselearner;
+		return this.hashCodeOfBaselearner;
 	}
 
 	public long getFirstDistributionTimestamp() {
-		return firstDistributionTimestamp;
+		return this.firstDistributionTimestamp;
 	}
 
 	public long getLastDistributionTimestamp() {
-		return lastDistributionTimestamp;
+		return this.lastDistributionTimestamp;
 	}
 
 	public long getFirstDistributionSTimestamp() {
-		return firstDistributionSTimestamp;
+		return this.firstDistributionSTimestamp;
 	}
 
 	public long getLastDistributionSTimestamp() {
-		return lastDistributionSTimestamp;
+		return this.lastDistributionSTimestamp;
 	}
 
 	public long getFirstClassifyInstanceTimestamp() {
-		return firstClassifyInstanceTimestamp;
+		return this.firstClassifyInstanceTimestamp;
 	}
 
 	public long getLastClassifyInstanceTimestamp() {
-		return lastClassifyInstanceTimestamp;
+		return this.lastClassifyInstanceTimestamp;
 	}
 
 	public long getFirstBuildClassifierTimestamp() {
-		return firstBuildClassifierTimestamp;
+		return this.firstBuildClassifierTimestamp;
 	}
 
 	public long getLastBuildClassifierTimestamp() {
-		return lastBuildClassifierTimestamp;
+		return this.lastBuildClassifierTimestamp;
 	}
 
 	public long getFirstMetafeatureTimestamp() {
-		return firstMetafeatureTimestamp;
+		return this.firstMetafeatureTimestamp;
 	}
 
 	public long getLastMetafeatureTimestamp() {
-		return lastMetafeatureTimestamp;
+		return this.lastMetafeatureTimestamp;
 	}
 
 	public Map<String, Object> getDatasetMetafeatures() {
-		return datasetMetafeatures;
+		return this.datasetMetafeatures;
 	}
 
-	public Map<String, Object> getAsInsertableMap() {
+	public Map<String, Object> getAsInsertableMap(final String suffix) {
 		Map<String, Object> insertableMap = new HashMap<>();
 
-		insertableMap.put("hashCodeOfBaselearner", hashCodeOfBaselearner);
-		insertableMap.put("numberOfDistributionCalls", numberOfDistributionCalls);
-		insertableMap.put("numberOfDistributionSCalls", numberOfDistributionSCalls);
-		insertableMap.put("numberOfClassifyInstanceCalls", numberOfClassifyInstanceCalls);
-		insertableMap.put("numberOfBuildClassifierCalls", numberOfBuildClassifierCalls);
-		insertableMap.put("numberOfMetafeatureComputationCalls", numberOfMetafeatureComputationCalls);
-		insertableMap.put("firstDistributionTimestamp", firstDistributionTimestamp);
-		insertableMap.put("lastDistributionTimestamp", lastDistributionTimestamp);
-		insertableMap.put("firstDistributionSTimestamp", firstDistributionSTimestamp);
-		insertableMap.put("lastDistributionSTimestamp", lastDistributionSTimestamp);
-		insertableMap.put("firstClassifyInstanceTimestamp", firstClassifyInstanceTimestamp);
-		insertableMap.put("lastClassifyInstanceTimestamp", lastClassifyInstanceTimestamp);
-		insertableMap.put("firstBuildClassifierTimestamp", firstBuildClassifierTimestamp);
-		insertableMap.put("lastBuildClassifierTimestamp", lastBuildClassifierTimestamp);
-		insertableMap.put("firstMetafeatureTimestamp", firstMetafeatureTimestamp);
-		insertableMap.put("lastMetafeatureTimestamp", lastMetafeatureTimestamp);
-		insertableMap.put("datasetMetafeatures", datasetMetafeatures.toString());
+
+		insertableMap.put("numberOfDistributionCalls_" + suffix, this.numberOfDistributionCalls);
+		insertableMap.put("numberOfDistributionSCalls_" + suffix, this.numberOfDistributionSCalls);
+		insertableMap.put("numberOfClassifyInstanceCalls_" + suffix, this.numberOfClassifyInstanceCalls);
+		insertableMap.put("numberOfBuildClassifierCalls_" + suffix, this.numberOfBuildClassifierCalls);
+		insertableMap.put("numberOfMetafeatureComputationCalls_" + suffix, this.numberOfMetafeatureComputationCalls);
+		insertableMap.put("firstDistributionTimestamp_" + suffix, this.firstDistributionTimestamp);
+		insertableMap.put("lastDistributionTimestamp_" + suffix, this.lastDistributionTimestamp);
+		insertableMap.put("firstDistributionSTimestamp_" + suffix, this.firstDistributionSTimestamp);
+		insertableMap.put("lastDistributionSTimestamp_" + suffix, this.lastDistributionSTimestamp);
+		insertableMap.put("firstClassifyInstanceTimestamp_" + suffix, this.firstClassifyInstanceTimestamp);
+		insertableMap.put("lastClassifyInstanceTimestamp_" + suffix, this.lastClassifyInstanceTimestamp);
+		insertableMap.put("firstBuildClassifierTimestamp_" + suffix, this.firstBuildClassifierTimestamp);
+		insertableMap.put("lastBuildClassifierTimestamp_" + suffix, this.lastBuildClassifierTimestamp);
+		insertableMap.put("firstMetafeatureTimestamp_" + suffix, this.firstMetafeatureTimestamp);
+		insertableMap.put("lastMetafeatureTimestamp_" + suffix, this.lastMetafeatureTimestamp);
 
 		return insertableMap;
 	}
 
 	@Override
 	public String toString() {
-		return "LeakingBaselearnerEventStatistics [hashCodeOfBaselearner=" + hashCodeOfBaselearner + ", numberOfDistributionCalls=" + numberOfDistributionCalls + ", numberOfDistributionSCalls=" + numberOfDistributionSCalls
-				+ ", numberOfClassifyInstanceCalls=" + numberOfClassifyInstanceCalls + ", numberOfBuildClassifierCalls=" + numberOfBuildClassifierCalls + ", numberOfMetafeatureComputationCalls=" + numberOfMetafeatureComputationCalls
-				+ ", firstDistributionTimestamp=" + firstDistributionTimestamp + ", lastDistributionTimestamp=" + lastDistributionTimestamp + ", firstDistributionSTimestamp=" + firstDistributionSTimestamp + ", lastDistributionSTimestamp="
-				+ lastDistributionSTimestamp + ", firstClassifyInstanceTimestamp=" + firstClassifyInstanceTimestamp + ", lastClassifyInstanceTimestamp=" + lastClassifyInstanceTimestamp + ", firstBuildClassifierTimestamp="
-				+ firstBuildClassifierTimestamp + ", lastBuildClassifierTimestamp=" + lastBuildClassifierTimestamp + ", firstMetafeatureTimestamp=" + firstMetafeatureTimestamp + ", lastMetafeatureTimestamp=" + lastMetafeatureTimestamp
-				+ ", datasetMetafeatures=" + datasetMetafeatures + ", exception=" + exception + "]";
+		return "LeakingBaselearnerEventStatistics [hashCodeOfBaselearner=" + this.hashCodeOfBaselearner + ", numberOfDistributionCalls=" + this.numberOfDistributionCalls + ", numberOfDistributionSCalls=" + this.numberOfDistributionSCalls
+				+ ", numberOfClassifyInstanceCalls=" + this.numberOfClassifyInstanceCalls + ", numberOfBuildClassifierCalls=" + this.numberOfBuildClassifierCalls + ", numberOfMetafeatureComputationCalls=" + this.numberOfMetafeatureComputationCalls
+				+ ", firstDistributionTimestamp=" + this.firstDistributionTimestamp + ", lastDistributionTimestamp=" + this.lastDistributionTimestamp + ", firstDistributionSTimestamp=" + this.firstDistributionSTimestamp + ", lastDistributionSTimestamp="
+				+ this.lastDistributionSTimestamp + ", firstClassifyInstanceTimestamp=" + this.firstClassifyInstanceTimestamp + ", lastClassifyInstanceTimestamp=" + this.lastClassifyInstanceTimestamp + ", firstBuildClassifierTimestamp="
+				+ this.firstBuildClassifierTimestamp + ", lastBuildClassifierTimestamp=" + this.lastBuildClassifierTimestamp + ", firstMetafeatureTimestamp=" + this.firstMetafeatureTimestamp + ", lastMetafeatureTimestamp=" + this.lastMetafeatureTimestamp
+				+ ", datasetMetafeatures=" + this.datasetMetafeatures + ", exception=" + this.exception + "]";
 	}
 
 }

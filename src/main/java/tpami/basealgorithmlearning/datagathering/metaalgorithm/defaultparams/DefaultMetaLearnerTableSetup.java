@@ -11,7 +11,7 @@ public class DefaultMetaLearnerTableSetup {
 			System.out.println(metaLearner);
 
 			/* prepare database for this combination */
-			DefaultMetaLearnerConfigContainer container = new DefaultMetaLearnerConfigContainer("conf/dbcon-basic.conf", metaLearner);
+			DefaultMetaLearnerConfigContainer container = new DefaultMetaLearnerConfigContainer("conf/dbcon-local.conf", metaLearner);
 			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getConfig(), container.getDatabaseHandle());
 			preparer.setLoggerName("example");
 			preparer.synchronizeExperiments();

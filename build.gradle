@@ -88,6 +88,17 @@ task preprocessorsMeasurementsJar(type: Jar) {
     with jar
 }
 
+task metalearnerExpJar(type: Jar) {
+    manifest {
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams.DefaultMetaLearnerExperimenter'
+    }
+    zip64 = true
+    baseName = 'metalearners'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
 task regressionBuilderJar(type: Jar) {
     manifest {
 		attributes 'Main-Class': 'tpami.basealgorithmlearning.regression.LogDatasetToRegressionDatasetConverter'

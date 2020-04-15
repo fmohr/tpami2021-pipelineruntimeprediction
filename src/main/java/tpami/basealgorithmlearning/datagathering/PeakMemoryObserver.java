@@ -5,10 +5,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PeakMemoryObserver extends Thread {
 
 	private AtomicLong memoryPeak = new AtomicLong();
+	private boolean stopped = false;
 
 	@Override
 	public void run() {
-		while (!Thread.interrupted()) {
+		while (!this.stopped && !Thread.interrupted()) {
 			long currentMemoryConsumption = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
 			this.memoryPeak.set(Math.max(this.memoryPeak.get(), currentMemoryConsumption));
 			try {
@@ -17,6 +18,7 @@ public class PeakMemoryObserver extends Thread {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("Memory Peak Observer stops.");
 	}
 
 	public long getMaxMemoryConsumptionObserved() {
@@ -25,5 +27,9 @@ public class PeakMemoryObserver extends Thread {
 
 	public void reset() {
 		this.memoryPeak.set(0);
+	}
+
+	public void cancel() {
+		this.stopped = true;
 	}
 }

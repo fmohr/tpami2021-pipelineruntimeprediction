@@ -23,7 +23,8 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	private transient EventBus eventBus;
 	private Classifier abstractClassifier;
 
-	public LeakingBaselearnerWrapper(EventBus eventBus, Classifier abstractClassifier, String randomString) {
+
+	public LeakingBaselearnerWrapper(final EventBus eventBus, final Classifier abstractClassifier, final String randomString) {
 		this.eventBus = eventBus;
 		this.abstractClassifier = abstractClassifier;
 		this.randomString = randomString;
@@ -35,20 +36,20 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	@Override
 	public void buildClassifier(final Instances instances) throws Exception {
 		try {
-			publishStartComputeMetafeaturesEvent();
+			this.publishStartComputeMetafeaturesEvent();
 
-			Map<String, Object> metafeatures = computeMetafeatures(instances);
+			Map<String, Object> metafeatures = this.computeMetafeatures(instances);
 
-			publishStopComputeMetafeaturesEvent(metafeatures);
+			this.publishStopComputeMetafeaturesEvent(metafeatures);
 
-			publishStartBuildClassifierEvent();
+			this.publishStartBuildClassifierEvent();
 
-			abstractClassifier.buildClassifier(instances);
+			this.abstractClassifier.buildClassifier(instances);
 
-			publishStopBuildClassifierEvent();
+			this.publishStopBuildClassifierEvent();
 
 		} catch (Exception ex) {
-			publishExceptionEvent(ex);
+			this.publishExceptionEvent(ex);
 			throw ex;
 		}
 	}
@@ -56,15 +57,15 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	@Override
 	public double classifyInstance(final Instance instance) throws Exception {
 		try {
-			publishStartClassifyEvent();
+			this.publishStartClassifyEvent();
 
-			double prediction = abstractClassifier.classifyInstance(instance);
+			double prediction = this.abstractClassifier.classifyInstance(instance);
 
-			publishStopClassifyEvent();
+			this.publishStopClassifyEvent();
 
 			return prediction;
 		} catch (Exception ex) {
-			publishExceptionEvent(ex);
+			this.publishExceptionEvent(ex);
 			throw ex;
 		}
 
@@ -73,61 +74,61 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 	@Override
 	public double[] distributionForInstance(final Instance instance) throws Exception {
 		try {
-			publishStartDistributionEvent();
+			this.publishStartDistributionEvent();
 
-			double[] predictions = abstractClassifier.distributionForInstance(instance);
+			double[] predictions = this.abstractClassifier.distributionForInstance(instance);
 
-			publishStopDistributionEvent();
+			this.publishStopDistributionEvent();
 
 			return predictions;
 		} catch (Exception ex) {
-			publishExceptionEvent(ex);
+			this.publishExceptionEvent(ex);
 			throw ex;
 		}
 	}
 
 	@Override
-	public double[][] distributionsForInstances(Instances batch) throws Exception {
+	public double[][] distributionsForInstances(final Instances batch) throws Exception {
 		try {
-			if (abstractClassifier instanceof AbstractClassifier) {
-				publishStartDistributionSEvent();
+			if (this.abstractClassifier instanceof AbstractClassifier) {
+				this.publishStartDistributionSEvent();
 
-				double[][] predictions = ((AbstractClassifier) abstractClassifier).distributionsForInstances(batch);
+				double[][] predictions = ((AbstractClassifier) this.abstractClassifier).distributionsForInstances(batch);
 
-				publishStopDistributionSEvent();
+				this.publishStopDistributionSEvent();
 
 				return predictions;
 			}
 
-			throw new RuntimeException("Classifier " + abstractClassifier + " does not support distributionS.");
+			throw new RuntimeException("Classifier " + this.abstractClassifier + " does not support distributionS.");
 		} catch (Exception ex) {
-			publishExceptionEvent(ex);
+			this.publishExceptionEvent(ex);
 			throw ex;
 		}
 	}
 
 	@Override
 	public Capabilities getCapabilities() {
-		return abstractClassifier.getCapabilities();
+		return this.abstractClassifier.getCapabilities();
 	}
 
 	@Override
-	public String toSource(String className) throws Exception {
+	public String toSource(final String className) throws Exception {
 		try {
-			if (abstractClassifier instanceof Sourcable) {
-				return ((Sourcable) abstractClassifier).toString();
+			if (this.abstractClassifier instanceof Sourcable) {
+				return ((Sourcable) this.abstractClassifier).toString();
 			}
-			throw new RuntimeException("Abstract classifier " + abstractClassifier.toString() + " does not support sourcing.");
+			throw new RuntimeException("Abstract classifier " + this.abstractClassifier.toString() + " does not support sourcing.");
 		} catch (Exception ex) {
-			publishExceptionEvent(ex);
+			this.publishExceptionEvent(ex);
 			throw ex;
 		}
 	}
 
 	@Override
-	public void setSeed(int seed) {
-		if (abstractClassifier instanceof Randomizable) {
-			((Randomizable) abstractClassifier).setSeed(seed);
+	public void setSeed(final int seed) {
+		if (this.abstractClassifier instanceof Randomizable) {
+			((Randomizable) this.abstractClassifier).setSeed(seed);
 		} else {
 			this.seed = seed;
 		}
@@ -136,70 +137,74 @@ public class LeakingBaselearnerWrapper extends AbstractClassifier implements Sou
 
 	@Override
 	public int getSeed() {
-		if (abstractClassifier instanceof Randomizable) {
-			return ((Randomizable) abstractClassifier).getSeed();
+		if (this.abstractClassifier instanceof Randomizable) {
+			return ((Randomizable) this.abstractClassifier).getSeed();
 		}
-		return seed;
+		return this.seed;
 	}
 
 	public void publishStartClassifyEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_CLASSIFY, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_CLASSIFY, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStopClassifyEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_CLASSIFY, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_CLASSIFY, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStartDistributionEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTION, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTION, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStopDistributionEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTION, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTION, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStartDistributionSEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTIONS, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_DISTRIBUTIONS, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStopDistributionSEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTIONS, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_DISTRIBUTIONS, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStartBuildClassifierEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_BUILD_CLASSIFIER, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_BUILD_CLASSIFIER, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStopBuildClassifierEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_BUILD_CLASSIFIER, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.STOP_BUILD_CLASSIFIER, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
 	public void publishStartComputeMetafeaturesEvent() {
-		getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_METAFEATURE_COMPUTATION, this));
+		this.getEventBus().post(new LeakingBaselearnerEvent(ELeakingBaselearnerEventType.START_METAFEATURE_COMPUTATION, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
-	public void publishStopComputeMetafeaturesEvent(Map<String, Object> metafeatures) {
-		getEventBus().post(new LeakingBaselearnerEvent(metafeatures, this));
+	public void publishStopComputeMetafeaturesEvent(final Map<String, Object> metafeatures) {
+		this.getEventBus().post(new LeakingBaselearnerEvent(metafeatures, this, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
-	public void publishExceptionEvent(Exception exception) {
-		getEventBus().post(new LeakingBaselearnerEvent(exception));
+	public void publishExceptionEvent(final Exception exception) {
+		this.getEventBus().post(new LeakingBaselearnerEvent(exception, EventBusHolder.isMetaLearnerTrained(this.randomString)));
 	}
 
-	public Map<String, Object> computeMetafeatures(Instances instances) {
+	public Map<String, Object> computeMetafeatures(final Instances instances) {
 		BasicDatasetFeatureGenerator featureGenerator = new BasicDatasetFeatureGenerator();
 		return featureGenerator.getFeatureRepresentation(new WekaInstances(instances));
 	}
 
 	private EventBus getEventBus() {
-		if (eventBus == null) {
-			eventBus = EventBusHolder.getEventBusForWrapper(this);
+		if (this.eventBus == null) {
+			this.eventBus = EventBusHolder.getEventBusForWrapper(this);
 		}
-		return eventBus;
+		return this.eventBus;
 	}
 
 	public String getRandomString() {
-		return randomString;
+		return this.randomString;
+	}
+
+	public void informThatMetaLearnerHasCompletedTraining() {
+		EventBusHolder.publishFactThatMetaLearnerHasFinishedTraining(this.randomString);
 	}
 
 }
