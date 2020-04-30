@@ -89,4 +89,9 @@ public class MetaFeatureContainer implements IMetaFeatureContainer {
 		return new HashCodeBuilder().append(this.dataset).append(this.featureMap).toHashCode();
 	}
 
+	@Override
+	public String toString() {
+		return this.featureMap.toString();
+	}
+
 }

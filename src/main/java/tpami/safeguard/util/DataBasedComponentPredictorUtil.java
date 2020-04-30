@@ -112,7 +112,7 @@ public class DataBasedComponentPredictorUtil {
 		}
 
 		if (!alreadyWarned.contains(id)) {
-			System.out.println("Could not find mapping for id " + id);
+			LOGGER.debug("Could not find mapping for id {}", id);
 			alreadyWarned.add(id);
 		}
 		return id;

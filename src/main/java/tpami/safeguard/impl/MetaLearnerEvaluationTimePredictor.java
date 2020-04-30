@@ -5,12 +5,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import ai.libs.hasco.model.CategoricalParameterDomain;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.hasco.model.NumericParameterDomain;
 import ai.libs.hasco.model.Parameter;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.basic.sets.SetUtil;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
 import tpami.safeguard.api.IMetaLearnerEvaluationTimePredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
@@ -39,6 +41,7 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 
 	private final String componentName;
 	private List<String> parameters;
+	private List<String> features;
 
 	private final Instances schema;
 	private final Classifier numBaseLearnerBuilds;
@@ -49,27 +52,31 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 
 	public MetaLearnerEvaluationTimePredictor(final String componentName, final KVStoreCollection metaLearnerEffectData) throws Exception {
 		this.componentName = componentName;
+		this.parameters = new ArrayList<>(SetUtil.difference(metaLearnerEffectData.get(0).keySet(), NON_PARAMETER_ATTRIBUTES));
+		this.features = new ArrayList<>(Arrays.stream(FEATURES_A).collect(Collectors.toList()));
+		this.features.addAll(this.parameters);
 
 		// generic schema for accessing the meta classifier models
 		ArrayList<Attribute> attributeList = new ArrayList<>();
-		attributeList.add(new Attribute("numinstances"));
-		attributeList.add(new Attribute("numattributes"));
+		this.features.stream().map(x -> new Attribute(x)).forEach(attributeList::add);
 		attributeList.add(new Attribute("target"));
+
 		this.schema = new Instances("general-schema", attributeList, 0);
+		this.schema.setClassIndex(this.schema.numAttributes() - 1);
 
 		// meta classifier behavior models
 		this.numBaseLearnerBuilds = this.getModel();
-		this.numBaseLearnerBuilds.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BUILDS, FEATURES_A));
+		this.numBaseLearnerBuilds.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BUILDS, this.features));
 		this.inductionNumBaseLearnerInferences = this.getModel();
-		this.inductionNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INDUCTION, FEATURES_A));
+		this.inductionNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INDUCTION, this.features));
 		this.inferenceNumBaseLearnerInferences = this.getModel();
-		this.inferenceNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INFERENCE, FEATURES_A));
+		this.inferenceNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INFERENCE, this.features));
 
 		// meta feature transformation models
 		this.numInstances = this.getModel();
-		this.numInstances.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMINSTANCES, FEATURES_A));
+		this.numInstances.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMINSTANCES, this.features));
 		this.numAttributes = this.getModel();
-		this.numAttributes.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMATTRIBUTES, FEATURES_A));
+		this.numAttributes.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMATTRIBUTES, this.features));
 
 	}
 
@@ -96,6 +103,7 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 			}
 		}
 
+		instance.setDataset(this.schema);
 		return instance;
 	}
 

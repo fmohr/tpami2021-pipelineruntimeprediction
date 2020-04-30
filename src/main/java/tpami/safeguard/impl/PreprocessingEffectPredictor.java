@@ -40,6 +40,7 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 	private static final String TARGET = "numattributes_after";
 
 	private String componentName;
+	private DatasetVarianceFeatureGenerator featureGen;
 
 	/** Predictor for resulting number of attributes after applying this preprocessor in default configuration. */
 	private Instances defaultSchema;
@@ -68,6 +69,9 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 			this.parameterizedSchema = new Instances(parameterizedDataset, 0);
 			this.parameterizedConfigNumAttributes.buildClassifier(parameterizedDataset);
 		}
+
+		this.featureGen = new DatasetVarianceFeatureGenerator();
+		this.featureGen.setSuffix("_before");
 	}
 
 	private Classifier getModel() {
@@ -89,7 +93,6 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 				attributesAfter = metaFeaturesBefore.getFeature(EMetaFeature.NUM_ATTRIBUTES);
 			}
 		}
-		LOGGER.warn("Currently not doing any prediction at all and just returning the input provided to this method.");
 		return new MetaFeatureContainer(metaFeaturesBefore.getFeature(EMetaFeature.NUM_INSTANCES), attributesAfter);
 	}
 
@@ -99,16 +102,17 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 	}
 
 	private Instance toDefaultConfigurationInstance(final MetaFeatureContainer metaFeatureContainer) throws Exception {
-		Map<String, Object> varianceFeatures = new DatasetVarianceFeatureGenerator().getFeatureRepresentation(metaFeatureContainer.getDataset());
+		Map<String, Object> varianceFeatures = this.featureGen.getFeatureRepresentation(metaFeatureContainer.getDataset());
 		Instance instance = new DenseInstance(this.defaultSchema.numAttributes());
 		instance.setValue(0, metaFeatureContainer.getFeature(EMetaFeature.NUM_ATTRIBUTES));
-		instance.setValue(1, (Double) varianceFeatures.get(FEATURES[1]));
-		instance.setValue(2, (Double) varianceFeatures.get(FEATURES[2]));
+		instance.setValue(1, (Integer) varianceFeatures.get(FEATURES[1]));
+		instance.setValue(2, (Integer) varianceFeatures.get(FEATURES[2]));
+		instance.setDataset(this.defaultSchema);
 		return instance;
 	}
 
 	private Instance toParameterizedConfigurationInstance(final ComponentInstance ci, final MetaFeatureContainer metaFeatureContainer) throws Exception {
-		Map<String, Object> varianceFeatures = new DatasetVarianceFeatureGenerator().getFeatureRepresentation(metaFeatureContainer.getDataset());
+		Map<String, Object> varianceFeatures = this.featureGen.getFeatureRepresentation(metaFeatureContainer.getDataset());
 		Instance instance = new DenseInstance(this.parameterizedSchema.numAttributes());
 		int i = 0;
 		instance.setValue(i++, metaFeatureContainer.getFeature(EMetaFeature.NUM_ATTRIBUTES));
@@ -147,6 +151,7 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 				instance.setValue(i++, (Double) value);
 			}
 		}
+		instance.setDataset(this.parameterizedSchema);
 		return instance;
 	}
 
