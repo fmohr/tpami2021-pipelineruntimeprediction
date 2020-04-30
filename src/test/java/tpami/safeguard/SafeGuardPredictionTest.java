@@ -11,6 +11,8 @@ import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.hasco.serialization.ComponentLoader;
 import ai.libs.jaicore.basic.ResourceFile;
+import tpami.safeguard.impl.MetaFeatureContainer;
+import tpami.safeguard.util.MLComponentInstanceWrapper;
 import weka.classifiers.meta.Bagging;
 
 public class SafeGuardPredictionTest {
@@ -33,14 +35,17 @@ public class SafeGuardPredictionTest {
 	@Test
 	public void testDefaultConfigBaselearnerPrediction() throws Exception {
 		ComponentInstance baselearner = this.sampleBaselearner(11);
-		System.out.println(safeGuard.predictInductionTime(baselearner, new double[] { 100, 10 }));
+		MetaFeatureContainer mf = new MetaFeatureContainer(100, 10);
+
+		System.out.println(safeGuard.predictInductionTime(new MLComponentInstanceWrapper(baselearner), mf));
 	}
 
 	@Test
 	public void testDefaultConfigPreprocessorPrediction() throws Exception {
 		ComponentInstance preprocessor = this.samplePreprocessor(0);
+		MetaFeatureContainer mf = new MetaFeatureContainer(100, 10);
 		System.out.println(preprocessor);
-		System.out.println("Preprocessor: " + safeGuard.predictInductionTime(preprocessor, new double[] { 100, 10 }));
+		System.out.println("Preprocessor: " + safeGuard.predictInductionTime(new MLComponentInstanceWrapper(preprocessor), mf));
 	}
 
 	private ComponentInstance samplePipeline() {

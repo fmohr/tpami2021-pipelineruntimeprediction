@@ -137,7 +137,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		}
 	}
 
-	private double predictInductionTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
+	public double predictInductionTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
 		if (ciw.isPipeline()) {
 			double inductionTime = 0.0;
 			// Compute runtime for executing preprocessor
@@ -185,7 +185,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		return this.predictInductionTime(ciw, new MetaFeatureContainer(dTrain));
 	}
 
-	private double predictInferenceTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest) throws Exception {
+	public double predictInferenceTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest) throws Exception {
 		if (ciw.isPipeline()) {
 			double inferenceTime = 0.0;
 			MLComponentInstanceWrapper preprocessor = ciw.getPreprocessor();
