@@ -1,5 +1,7 @@
 package tpami.safeguard.api;
 
+import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
+
 import ai.libs.hasco.model.ComponentInstance;
 import tpami.safeguard.impl.MetaFeatureContainer;
 
@@ -83,21 +85,28 @@ public interface IBaseComponentEvaluationTimePredictor {
 		return this.predictInductionTime(ci, metaFeaturesTrain) + this.predictInferenceTime(ci, metaFeaturesTrain, numTestInstances);
 	}
 
-	public double getActualDefaultConfigurationInductionTime();
+	public void setActualDefaultConfigurationInductionTime(MetaFeatureContainer metaFeaturesTrain, double actualInductionTime);
 
-	public void setActualDefaultConfigurationInductionTime(double actualInductionTime);
+	public void setActualDefaultConfigurationInferenceTime(MetaFeatureContainer metaFeaturesTrain, MetaFeatureContainer metaFeaturesTest, double actualInferenceTime);
 
-	public double getActualDefaultConfigurationInferenceTime();
-
-	public void setActualDefaultConfigurationInferenceTime(double actualInferenceTime);
-
-	default void setActualDefaultConfigurationTimes(final Double actualInductionTime, final Double actualInferenceTime) {
+	default void setActualDefaultConfigurationTimes(final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest, final Double actualInductionTime, final Double actualInferenceTime) {
 		if (actualInductionTime != null) {
-			this.setActualDefaultConfigurationInductionTime(actualInductionTime);
+			this.setActualDefaultConfigurationInductionTime(metaFeaturesTrain, actualInductionTime);
 		}
 		if (actualInferenceTime != null) {
-			this.setActualDefaultConfigurationInferenceTime(actualInferenceTime);
+			this.setActualDefaultConfigurationInferenceTime(metaFeaturesTrain, metaFeaturesTest, actualInferenceTime);
 		}
 	}
 
+	default void setActualDefaultConfigurationTimes(final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest, final Double actualInductionTime, final Double actualInferenceTime) {
+		this.setActualDefaultConfigurationTimes(new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest), actualInductionTime, actualInferenceTime);
+	}
+
+	default void setActualDefaultConfigurationInductionTime(final ILabeledDataset<?> dTrain, final double actualInductionTime) {
+		this.setActualDefaultConfigurationInductionTime(new MetaFeatureContainer(dTrain), actualInductionTime);
+	}
+
+	default void setActualDefaultConfigurationInferenceTime(final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest, final double actualInferenceTime) {
+		this.setActualDefaultConfigurationInferenceTime(new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest), actualInferenceTime);
+	}
 }

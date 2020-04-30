@@ -1,7 +1,9 @@
 package tpami.safeguard.impl;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -10,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.classifiers.Classifier;
@@ -32,8 +35,8 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 
 	private final List<String> parameterFeatures;
 
-	private Double actualInductionTime = null;
-	private Double actualInferenceTime = null;
+	private Map<MetaFeatureContainer, Double> actualInductionTimeCache = new HashMap<>();
+	private Map<MetaFeatureContainer, Double> actualInferenceTimeCache = new HashMap<>();
 
 	private final String componentName;
 
@@ -106,6 +109,11 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 		Classifier model;
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
+			if (this.actualInductionTimeCache.containsKey(metaFeaturesTrain)) {
+				double inductionTime = this.actualInductionTimeCache.get(metaFeaturesTrain);
+				LOGGER.debug("Return induction time for base component {} from cache: {}.", this.componentName, inductionTime);
+				return inductionTime;
+			}
 			model = this.defaultInductionPredictor;
 			i = this.toDefaultInstance(metaFeaturesTrain);
 		} else {
@@ -120,6 +128,11 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 		Classifier model;
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
+			if (this.actualInferenceTimeCache.containsKey(metaFeaturesTrain)) {
+				double inferenceTime = this.actualInferenceTimeCache.get(metaFeaturesTrain);
+				LOGGER.debug("Return inference time for base component {} from cache. {}.", this.componentName, inferenceTime);
+				return inferenceTime;
+			}
 			model = this.defaultInferencePredictor;
 			i = this.toDefaultInstance(metaFeaturesTrain);
 		} else {
@@ -161,23 +174,23 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 	}
 
 	@Override
-	public void setActualDefaultConfigurationInductionTime(final double actualInductionTime) {
-		this.actualInductionTime = actualInductionTime;
+	public void setActualDefaultConfigurationInductionTime(final MetaFeatureContainer metaFeaturesTrain, final double actualInductionTime) {
+		this.actualInductionTimeCache.put(metaFeaturesTrain, actualInductionTime);
 	}
 
 	@Override
-	public double getActualDefaultConfigurationInductionTime() {
-		return this.actualInductionTime;
+	public void setActualDefaultConfigurationInferenceTime(final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest, final double actualInferenceTime) {
+		this.actualInferenceTimeCache.put(metaFeaturesTrain, actualInferenceTime / metaFeaturesTest.getFeature(EMetaFeature.NUM_INSTANCES) * IBaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
 	}
 
 	@Override
-	public void setActualDefaultConfigurationInferenceTime(final double actualInferenceTime) {
-		this.actualInferenceTime = actualInferenceTime;
-	}
-
-	@Override
-	public double getActualDefaultConfigurationInferenceTime() {
-		return this.actualInferenceTime;
+	public String toString() {
+		Map<String, Object> containedModels = new HashMap<>();
+		containedModels.put("defaultInduction", this.defaultInductionPredictor);
+		containedModels.put("defaultInference", this.defaultInferencePredictor);
+		containedModels.put("paramInduction", this.parameterizedInductionPredictor);
+		containedModels.put("paramInference", this.parameterizedInferencePredictor);
+		return DataBasedComponentPredictorUtil.safeGuardComponentToString(this.componentName, containedModels);
 	}
 
 }

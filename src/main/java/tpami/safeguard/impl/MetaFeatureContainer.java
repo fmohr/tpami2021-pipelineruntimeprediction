@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.IAttribute;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.ICategoricalAttribute;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
@@ -53,10 +55,12 @@ public class MetaFeatureContainer implements IMetaFeatureContainer {
 		this.featureMap.putAll(additionalFeatures);
 	}
 
+	@Override
 	public ILabeledDataset<?> getDataset() {
 		return this.dataset;
 	}
 
+	@Override
 	public double getFeature(final EMetaFeature feature) {
 		return this.featureMap.get(feature);
 	}
@@ -65,10 +69,24 @@ public class MetaFeatureContainer implements IMetaFeatureContainer {
 	 * Turn the meta features of this container into a double array representation.
 	 * @return A double array representing the meta features within this container.
 	 */
+	@Override
 	public double[] toFeatureVector() {
 		List<EMetaFeature> keys = new ArrayList<>(this.featureMap.keySet());
 		Collections.sort(keys);
 		return keys.stream().mapToDouble(x -> this.featureMap.get(x)).toArray();
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other instanceof MetaFeatureContainer) {
+			return new EqualsBuilder().append(this.dataset, ((MetaFeatureContainer) other).dataset).append(this.featureMap, ((MetaFeatureContainer) other).featureMap).isEquals();
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return new HashCodeBuilder().append(this.dataset).append(this.featureMap).toHashCode();
 	}
 
 }

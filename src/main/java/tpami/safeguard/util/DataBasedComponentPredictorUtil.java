@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
@@ -222,6 +223,15 @@ public class DataBasedComponentPredictorUtil {
 		}
 		data.setClassIndex(data.numAttributes() - 1);
 		return data;
+	}
+
+	public static String safeGuardComponentToString(final String componentName, final Map<String, Object> containedModels) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(componentName);
+		sb.append(" [");
+		sb.append(containedModels.entrySet().stream().map(x -> x.getKey() + ":" + (x.getValue() != null)).collect(Collectors.joining(",")));
+		sb.append("]");
+		return sb.toString();
 	}
 
 }

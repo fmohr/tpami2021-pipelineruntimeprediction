@@ -31,15 +31,16 @@ import tpami.safeguard.api.IMetaLearnerEvaluationTimePredictor;
 import tpami.safeguard.impl.BaseComponentEvaluationTimePredictor;
 import tpami.safeguard.impl.MetaFeatureContainer;
 import tpami.safeguard.impl.MetaLearnerEvaluationTimePredictor;
+import tpami.safeguard.impl.PreprocessingEffectPredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import tpami.safeguard.util.MLComponentInstanceWrapper;
 import weka.classifiers.trees.J48;
 
 public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
-	private static final boolean CONF_BUILD_BASE_COMPONENTS = false;
-	private static final boolean CONF_J48_ONLY = false;
-	private static final boolean CONF_BUILD_PREPROCESSOR_EFFECTS = false;
+	private static final boolean CONF_BUILD_BASE_COMPONENTS = true;
+	private static final boolean CONF_J48_ONLY = true;
+	private static final boolean CONF_BUILD_PREPROCESSOR_EFFECTS = true;
 	private static final boolean CONF_BUILD_META_LEARNERS = true;
 
 	private static final File PARAMETERIZED_DIRECTORY = new File("python/data/parameterized/");
@@ -56,7 +57,14 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
 	private static void rescaleApplicationTime(final KVStoreCollection col) {
 		for (IKVStore store : col) {
-			store.put("applicationtime", store.getAsDouble("applicationtime") / store.getAsDouble("applicationsize") * BaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
+			try {
+				if (!store.getAsString("applicationtime").trim().isEmpty()) {
+					store.put("applicationtime", store.getAsDouble("applicationtime") / store.getAsDouble("applicationsize") * BaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
+				}
+			} catch (Exception e) {
+				System.out.println(store);
+				System.exit(0);
+			}
 		}
 	}
 
@@ -109,6 +117,9 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 					this.lock.unlock();
 				}
 			});
+
+			System.out.println("Built base components successfully:");
+			this.componentRuntimePredictorMap.values().stream().forEach(System.out::println);
 		}
 
 		// Build preprocessor data transformation predictors
@@ -121,6 +132,9 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				KVStoreCollection parameterizedData = null;
 				this.preprocessingEffectPredictorMap.put(preprocessorEntry.getKey(), new PreprocessingEffectPredictor(preprocessorEntry.getKey(), preprocessorEntry.getValue(), parameterizedData));
 			}
+
+			System.out.println("Built preprocessor meta feature transformation effect predictors:");
+			this.preprocessingEffectPredictorMap.values().stream().forEach(System.out::println);
 		}
 
 		// Build meta learner predictors
@@ -132,7 +146,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				KVStoreCollection metaLearnerData = DataBasedComponentPredictorUtil.readCSV(csvFile, new HashMap<>());
 				metaLearnerData.removeAnyContained(cleanTrainingData, true);
 				String algorithm = metaLearnerData.get(0).getAsString("algorithm");
-				this.metaLearnerPredictorMap.put(algorithm, new MetaLearnerEvaluationTimePredictor(metaLearnerData));
+				this.metaLearnerPredictorMap.put(algorithm, new MetaLearnerEvaluationTimePredictor(algorithm, metaLearnerData));
 			}
 		}
 	}
@@ -235,13 +249,16 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	}
 
 	@Override
-	public void updateWithActualInformation(final ComponentInstance ci, final double inductionTime, final double inferenceTime) {
+	public void updateWithActualInformation(final ComponentInstance ci, final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest, final double inductionTime, final double inferenceTime) {
+		this.updateWithActualInformation(ci, new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest), inductionTime, inferenceTime);
+	}
+
+	public void updateWithActualInformation(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest, final double inductionTime, final double inferenceTime) {
 		MLComponentInstanceWrapper ciw = new MLComponentInstanceWrapper(ci);
 		if (ciw.isBaseLearner()) {
 			IBaseComponentEvaluationTimePredictor pred = this.componentRuntimePredictorMap.get(ciw.getComponent().getName());
-			pred.setActualDefaultConfigurationInductionTime(inductionTime);
-			pred.setActualDefaultConfigurationInferenceTime(inferenceTime);
+			pred.setActualDefaultConfigurationInductionTime(metaFeaturesTrain, inductionTime);
+			pred.setActualDefaultConfigurationInferenceTime(metaFeaturesTrain, metaFeaturesTest, inferenceTime);
 		}
 	}
-
 }

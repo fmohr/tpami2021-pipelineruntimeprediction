@@ -1,4 +1,4 @@
-package tpami.safeguard;
+package tpami.safeguard.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +23,6 @@ import ai.libs.jaicore.basic.sets.SetUtil;
 import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IMetaFeatureTransformationPredictor;
-import tpami.safeguard.impl.MetaFeatureContainer;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.RandomForest;
@@ -149,5 +148,13 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 			}
 		}
 		return instance;
+	}
+
+	@Override
+	public String toString() {
+		Map<String, Object> containedModels = new HashMap<>();
+		containedModels.put("defaultNumAttributes", this.defaultConfigNumAttributes);
+		containedModels.put("paramNumAttributes", this.parameterizedConfigNumAttributes);
+		return DataBasedComponentPredictorUtil.safeGuardComponentToString(this.componentName, containedModels);
 	}
 }

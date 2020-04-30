@@ -37,6 +37,7 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 	private static final String TARGET_BL_CALLS_INDUCTION = "predictioncalls_training";
 	private static final String TARGET_BL_CALLS_INFERENCE = "predictioncalls_prediction";
 
+	private final String componentName;
 	private List<String> parameters;
 
 	private final Instances schema;
@@ -46,7 +47,9 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 	private final Classifier inductionNumBaseLearnerInferences;
 	private final Classifier inferenceNumBaseLearnerInferences;
 
-	public MetaLearnerEvaluationTimePredictor(final KVStoreCollection metaLearnerEffectData) throws Exception {
+	public MetaLearnerEvaluationTimePredictor(final String componentName, final KVStoreCollection metaLearnerEffectData) throws Exception {
+		this.componentName = componentName;
+
 		// generic schema for accessing the meta classifier models
 		ArrayList<Attribute> attributeList = new ArrayList<>();
 		attributeList.add(new Attribute("numinstances"));
@@ -126,6 +129,17 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 		double baseLearnerInferenceTime = baseLearnerEvaluationTimePredictor.predictInferenceTime(ciw.getBaseLearner(), subMetaFeatures, predictionCallsOfBaseLearnerDuringInference);
 
 		return k * baseLearnerInferenceTime;
+	}
+
+	@Override
+	public String toString() {
+		Map<String, Object> containedModels = new HashMap<>();
+		containedModels.put("builds", this.numBaseLearnerBuilds);
+		containedModels.put("subAttributes", this.numAttributes);
+		containedModels.put("subInstances", this.numInstances);
+		containedModels.put("inferencesDuringTraining", this.inductionNumBaseLearnerInferences);
+		containedModels.put("inferencesDuringApplication", this.inferenceNumBaseLearnerInferences);
+		return DataBasedComponentPredictorUtil.safeGuardComponentToString(this.componentName, containedModels);
 	}
 
 }
