@@ -12,6 +12,7 @@ import java.util.List;
 import org.junit.Test;
 
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.core.Instances;
 
 public class DataBasedComponentPredictorUtilTest {

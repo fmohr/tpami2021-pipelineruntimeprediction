@@ -1,4 +1,4 @@
-package tpami.safeguard;
+package tpami.safeguard.util;
 
 import ai.libs.hasco.model.ComponentInstance;
 

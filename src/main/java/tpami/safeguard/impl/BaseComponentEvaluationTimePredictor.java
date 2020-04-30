@@ -1,4 +1,4 @@
-package tpami.safeguard;
+package tpami.safeguard.impl;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,20 +10,22 @@ import org.slf4j.LoggerFactory;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
+import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.RandomForest;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class RandomForestComponentPredictor implements IComponentPredictor {
+public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvaluationTimePredictor {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(RandomForestComponentPredictor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(BaseComponentEvaluationTimePredictor.class);
 
-	private static final String TARGET_INDUCTION = "fittime";
-	private static final String TARGET_INFERENCE = "applicationtime";
 	private static final String[] FEATURES_INDUCTION = { "fitsize", "fitattributes" };
-	private static final String[] FEATURES_INFERENCE = { "applicationsize", "fitattributes" };
+	private static final String TARGET_INDUCTION = "fittime";
+	private static final String[] FEATURES_INFERENCE = { "fitsize", "fitattributes" };
+	private static final String TARGET_INFERENCE = "applicationtime";
 	private static final List<String> NON_PARAMETER_COLUMNS = Arrays.asList("openmlid", "totalsize", "fitsize", "applicationsize", "fitattributes", "seed", "algorithm", "fittime", "applicationtime");
 
 	private static final int NUM_TREES = 100;
@@ -43,7 +45,7 @@ public class RandomForestComponentPredictor implements IComponentPredictor {
 	private final Classifier parameterizedInductionPredictor;
 	private final Classifier parameterizedInferencePredictor;
 
-	public RandomForestComponentPredictor(final String componentName, final KVStoreCollection defaultData, final KVStoreCollection parameterizedData) throws Exception {
+	public BaseComponentEvaluationTimePredictor(final String componentName, final KVStoreCollection defaultData, final KVStoreCollection parameterizedData) throws Exception {
 		LOGGER.debug("Create component predictor for {}", componentName);
 		this.componentName = componentName;
 
@@ -100,7 +102,7 @@ public class RandomForestComponentPredictor implements IComponentPredictor {
 	}
 
 	@Override
-	public double predictInductionTime(final ComponentInstance ci, final double[] metaFeaturesTrain) throws Exception {
+	public double predictInductionTime(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
 		Classifier model;
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
@@ -114,20 +116,21 @@ public class RandomForestComponentPredictor implements IComponentPredictor {
 	}
 
 	@Override
-	public double predictInferenceTime(final ComponentInstance ci, final double[] metaFeaturesTest) throws Exception {
+	public double predictInferenceTime(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
 		Classifier model;
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
 			model = this.defaultInferencePredictor;
-			i = this.toDefaultInstance(metaFeaturesTest);
+			i = this.toDefaultInstance(metaFeaturesTrain);
 		} else {
 			model = this.parameterizedInferencePredictor;
-			i = this.toParameterizedInstance(metaFeaturesTest, ci);
+			i = this.toParameterizedInstance(metaFeaturesTrain, ci);
 		}
 		return model.classifyInstance(i);
 	}
 
-	public Instance toDefaultInstance(final double[] metaFeatures) {
+	public Instance toDefaultInstance(final MetaFeatureContainer metaFeatureContainer) {
+		double[] metaFeatures = metaFeatureContainer.toFeatureVector();
 		Instance instance = new DenseInstance(this.defaultSchema.numAttributes());
 		for (int i = 0; i < metaFeatures.length; i++) {
 			instance.setValue(i, metaFeatures[i]);
@@ -136,7 +139,8 @@ public class RandomForestComponentPredictor implements IComponentPredictor {
 		return instance;
 	}
 
-	public Instance toParameterizedInstance(final double[] metaFeatures, final ComponentInstance ci) {
+	public Instance toParameterizedInstance(final MetaFeatureContainer metaFeatureContainer, final ComponentInstance ci) {
+		double[] metaFeatures = metaFeatureContainer.toFeatureVector();
 		Instance instance = new DenseInstance(this.parameterizedSchema.numAttributes());
 		int currentI = 0;
 		for (currentI = 0; currentI < metaFeatures.length; currentI++) {

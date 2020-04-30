@@ -1,4 +1,4 @@
-package tpami.safeguard;
+package tpami.safeguard.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +27,11 @@ import weka.classifiers.functions.SimpleLogistic;
 import weka.classifiers.functions.VotedPerceptron;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.lazy.KStar;
+import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.meta.Bagging;
+import weka.classifiers.meta.LogitBoost;
+import weka.classifiers.meta.RandomCommittee;
+import weka.classifiers.meta.RandomSubSpace;
 import weka.classifiers.rules.DecisionTable;
 import weka.classifiers.rules.JRip;
 import weka.classifiers.rules.OneR;
@@ -46,9 +51,10 @@ import weka.core.Instances;
 public class DataBasedComponentPredictorUtil {
 
 	private static final String[] COMPONENT_IDS = { "multilayerperceptron", "bayesnet", "decisionstump", "decisiontable", "ibk", "logistic", "naivebayes", "oner", "part", "randomforest", "randomtree", "smo", "votedperceptron", "kstar",
-			"reptree", "sl", "j48", "lmt", "jrip", "naivebayesmultinomial", "zeror" };
+			"reptree", "sl", "j48", "lmt", "jrip", "naivebayesmultinomial", "zeror", "adaboostm1", "bagging", "logitboost", "randomcommittee", "randomsubspace" };
 	private static final Class<?>[] WEKA_CLASSES = { MultilayerPerceptron.class, BayesNet.class, DecisionStump.class, DecisionTable.class, IBk.class, Logistic.class, NaiveBayes.class, OneR.class, PART.class, RandomForest.class,
-			RandomTree.class, SMO.class, VotedPerceptron.class, KStar.class, REPTree.class, SimpleLogistic.class, J48.class, LMT.class, JRip.class, NaiveBayesMultinomial.class, ZeroR.class };
+			RandomTree.class, SMO.class, VotedPerceptron.class, KStar.class, REPTree.class, SimpleLogistic.class, J48.class, LMT.class, JRip.class, NaiveBayesMultinomial.class, ZeroR.class, AdaBoostM1.class, Bagging.class, LogitBoost.class,
+			RandomCommittee.class, RandomSubSpace.class };
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataBasedComponentPredictorUtil.class);
 	private static final Map<String, String> ID2WekaMap = new HashMap<>();
