@@ -1,6 +1,6 @@
 package tpami.safeguard.api;
 
-public interface IPredictionCalibrator {
+public interface IEvaluationTimeCalibrationModule {
 
 	public double getSystemCalibrationFactor() throws Exception;
 
