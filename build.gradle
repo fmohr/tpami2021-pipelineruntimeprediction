@@ -20,14 +20,30 @@ sourceSets {
     }
 }
 
-
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
 	// dependencies for development time
-	compile 'ai.libs:mlplan-weka'
-	compile 'ai.libs:mlplan-ext-metalearning'
+	compile ('ai.libs:mlplan-weka') {
+ 		exclude group: 'org.nd4j'
+ 		exclude group: 'org.bytedeco.javacpp-presets'
+ 		exclude group: 'org.deeplearning4j'
+ 		exclude group: 'org.openjfx'
+ 		exclude group: 'com.sun.jersey'
+ 		exclude group: 'org.glassfish.jersey.core'
+ 		exclude group: 'org.glassfish.jersey.inject'
+ 		exclude group: 'org.apache.hadoop'
+ 		exclude group: 'org.apache.maven'
+ 		exclude group: 'org.apache.zookeeper'
+ 		exclude group: 'org.glassfish.jersey.ext'
+ 		exclude group: 'org.eclipse.rdf4j'
+ 		exclude group: 'net.sourceforge.owlapi'
+ 		exclude group: 'org.graphstream'
+ 		exclude group: 'com.github.graphstream'
+		exclude group: 'mysql'
+	}
+    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.20'
 	testCompile group: 'junit', name: 'junit', version: '4.12'
 	//compile group: 'org.nd4j', name: 'nd4j-native-platform', version: '1.0.0-beta2'
 	//compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
@@ -142,4 +158,7 @@ test {
 		events "failed"
 		exceptionFormat "full"
      } 	
+}
+eclipse {
+	project.natures "org.eclipse.buildship.core.gradleprojectnature"
 }
