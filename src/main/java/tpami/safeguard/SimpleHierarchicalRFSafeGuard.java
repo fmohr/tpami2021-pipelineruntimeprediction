@@ -10,11 +10,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import org.aeonbits.owner.ConfigFactory;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
+import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
+import org.api4.java.ai.ml.core.evaluation.ISupervisedLearnerEvaluator;
+import org.api4.java.algorithm.Timeout;
 import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +29,9 @@ import org.slf4j.LoggerFactory;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollectionOneLayerPartition;
+import ai.libs.jaicore.basic.sets.Pair;
+import ai.libs.jaicore.ml.core.evaluation.evaluator.MonteCarloCrossValidationEvaluator;
+import ai.libs.mlplan.core.ITimeTrackingLearner;
 import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
@@ -33,23 +43,11 @@ import tpami.safeguard.impl.MetaLearnerEvaluationTimePredictor;
 import tpami.safeguard.impl.PreprocessingEffectPredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import tpami.safeguard.util.MLComponentInstanceWrapper;
-import weka.classifiers.meta.AdaBoostM1;
-import weka.classifiers.trees.J48;
 
 public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
-	private static final boolean CONF_BUILD_BASE_COMPONENTS = true;
-	private static final boolean CONF_BUILD_PREPROCESSOR_EFFECTS = true;
-	private static final boolean CONF_BUILD_META_LEARNERS = true;
-
-	private static final boolean CONF_TEST_PIPELINE_ONLY = true;
-	private static final List<String> CONF_ACTIVE_PIPELINE_COMPONENTS = Arrays.asList("bf/cfssubseteval", J48.class.getName(), AdaBoostM1.class.getName());
-
-	private static final File PARAMETERIZED_DIRECTORY = new File("python/data/parameterized/");
-	private static final File META_LEARNER_DIR = new File("python/data/metalearner/");
-	private static final String PARAMETERIZED_FILE_NAME_TEMPLATE = "runtimes_%s_parametrized_nooutliers.csv";
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleHierarchicalRFSafeGuard.class);
+	private static final ISimpleHierarchicalRFSafeGuardConfig CONFIG = ConfigFactory.create(ISimpleHierarchicalRFSafeGuardConfig.class);
 
 	private Lock lock = new ReentrantLock();
 
@@ -57,122 +55,201 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	private Map<String, IMetaFeatureTransformationPredictor> preprocessingEffectPredictorMap = new HashMap<>();
 	private Map<String, IMetaLearnerEvaluationTimePredictor> metaLearnerPredictorMap = new HashMap<>();
 
+	private final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark;
+	private final ILabeledDataset<?> train;
+	private final ILabeledDataset<?> test;
+	private final double inductionCalibrationFactor;
+	private final double inferenceCalibrationFactor;
+	private final double benchmarkFactor;
+
+	public static void setNumCPUs(final int numCPUs) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_CPUS, numCPUs + "");
+	}
+
 	private static void rescaleApplicationTime(final KVStoreCollection col) {
 		for (IKVStore store : col) {
 			try {
-				if (!store.getAsString("applicationtime").trim().isEmpty()) {
-					store.put("applicationtime", store.getAsDouble("applicationtime") / store.getAsDouble("applicationsize") * BaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
+				if (!store.getAsString(CONFIG.getLabelForApplicationTime()).trim().isEmpty()) {
+					store.put(CONFIG.getLabelForApplicationTime(),
+							store.getAsDouble(CONFIG.getLabelForApplicationTime()) / store.getAsDouble(CONFIG.getLabelForApplicationSize()) * BaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
 				}
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.out.println(store);
 				System.exit(0);
 			}
 		}
 	}
 
-	public SimpleHierarchicalRFSafeGuard(final File baseDefaultData, final int... excludeOpenMLDatasets) throws Exception {
+	public SimpleHierarchicalRFSafeGuard(final int[] excludeOpenMLDatasets, final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark, final ILabeledDataset<?> train,
+			final ILabeledDataset<?> test) throws Exception {
+		this.benchmark = benchmark;
+		this.train = train;
+		this.test = test;
+
+		// Start calibration
+		if (CONFIG.getPerformCalibration()) {
+			Pair<Double, Double> calibrationFactors = new EvaluationTimeCalibrationModule(Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList())).getSystemCalibrationFactor();
+			this.inductionCalibrationFactor = calibrationFactors.getX();
+			this.inferenceCalibrationFactor = calibrationFactors.getY();
+		} else {
+			this.inductionCalibrationFactor = 1.0;
+			this.inferenceCalibrationFactor = 1.0;
+		}
+		System.err.println("Calibration factors: " + this.inductionCalibrationFactor + " / " + this.inferenceCalibrationFactor);
+
+		// Extract benchmark factor
+		if (benchmark instanceof MonteCarloCrossValidationEvaluator) {
+			this.benchmarkFactor = ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats();
+		} else {
+			this.benchmarkFactor = 1.0;
+		}
+		System.err.println("Benchmark factor: " + this.benchmarkFactor);
+
 		// Clean from excluded openml ids
 		Map<String, Collection<String>> cleanTrainingData = new HashMap<>();
-		cleanTrainingData.put("openmlid", Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList()));
+		cleanTrainingData.put(CONFIG.getLabelForDatasetID(), Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList()));
 
+		List<Runnable> runnables = new ArrayList<>();
 		/*  Build component predictors */
-		if (CONF_BUILD_BASE_COMPONENTS) {
+		if (CONFIG.getBuildBaseComponents()) {
 			// Load data...
-			KVStoreCollection baseDefaultCol = DataBasedComponentPredictorUtil.readCSV(baseDefaultData, new HashMap<>());
+			KVStoreCollection baseDefaultCol = DataBasedComponentPredictorUtil.readCSV(CONFIG.getBasicEvaluationRuntimeFile(), new HashMap<>());
+			List<Integer> datasetIDs = new ArrayList<>(baseDefaultCol.stream().map(x -> x.getAsInt("openmlid")).collect(Collectors.toSet()));
+			Collections.sort(datasetIDs);
+			System.out.println(datasetIDs);
+
 			baseDefaultCol.removeAnyContained(cleanTrainingData, true);
 			rescaleApplicationTime(baseDefaultCol);
 
-			Set<String> ids = baseDefaultCol.stream().map(x -> x.getAsString("openmlid")).collect(Collectors.toSet());
+			Set<String> ids = baseDefaultCol.stream().map(x -> x.getAsString(CONFIG.getLabelForDatasetID())).collect(Collectors.toSet());
 			List<String> idList = new ArrayList<>(ids);
 			Collections.sort(idList);
 
-			Set<String> components = baseDefaultCol.stream().map(x -> x.getAsString("algorithm")).collect(Collectors.toSet());
+			Set<String> components = baseDefaultCol.stream().map(x -> x.getAsString(CONFIG.getLabelForAlgorithm())).collect(Collectors.toSet());
 			// Partition kvstore collections and fill predictor map
-			KVStoreCollectionOneLayerPartition defaultPartition = new KVStoreCollectionOneLayerPartition("algorithm", baseDefaultCol);
-			components.parallelStream().forEach(component -> {
-				// Speed up of build phase for base components (just for testing purposes)
-				if (CONF_TEST_PIPELINE_ONLY && !CONF_ACTIVE_PIPELINE_COMPONENTS.contains(component)) {
-					return;
-				}
-				File paramCSV = new File(PARAMETERIZED_DIRECTORY, String.format(PARAMETERIZED_FILE_NAME_TEMPLATE, DataBasedComponentPredictorUtil.mapWeka2ID(component)));
-				KVStoreCollection paramCol = null;
-				if (paramCSV.exists()) {
+			KVStoreCollectionOneLayerPartition defaultPartition = new KVStoreCollectionOneLayerPartition(CONFIG.getLabelForAlgorithm(), baseDefaultCol);
+
+			components.stream().map(component -> new Runnable() {
+				@Override
+				public void run() {
+					// Speed up of build phase for base components (just for testing purposes)
+					if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(component)) {
+						return;
+					}
+					File paramCSV = new File(CONFIG.getBasicParameterizedDirectory(), String.format(CONFIG.getParameterizedFileNameTemplate(), DataBasedComponentPredictorUtil.mapWeka2ID(component)));
+					KVStoreCollection paramCol = null;
+					if (paramCSV.exists()) {
+						try {
+							paramCol = DataBasedComponentPredictorUtil.readCSV(paramCSV, new HashMap<>());
+							paramCol.removeAnyContained(cleanTrainingData, true);
+							rescaleApplicationTime(paramCol);
+						} catch (IOException e) {
+							LOGGER.warn("Could not read csv file {}", paramCSV.getAbsolutePath(), e);
+						}
+					}
+					IBaseComponentEvaluationTimePredictor pred = null;
 					try {
-						paramCol = DataBasedComponentPredictorUtil.readCSV(paramCSV, new HashMap<>());
-						paramCol.removeAnyContained(cleanTrainingData, true);
-						rescaleApplicationTime(paramCol);
-					} catch (IOException e) {
-						LOGGER.warn("Could not read csv file {}", paramCSV.getAbsolutePath(), e);
+						pred = new BaseComponentEvaluationTimePredictor(component, defaultPartition.getData().get(component), paramCol);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+
+					SimpleHierarchicalRFSafeGuard.this.lock.lock();
+					try {
+						SimpleHierarchicalRFSafeGuard.this.componentRuntimePredictorMap.put(component, pred);
+					} finally {
+						SimpleHierarchicalRFSafeGuard.this.lock.unlock();
 					}
 				}
-				IBaseComponentEvaluationTimePredictor pred = null;
-				try {
-					pred = new BaseComponentEvaluationTimePredictor(component, defaultPartition.getData().get(component), paramCol);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-				this.lock.lock();
-				try {
-					this.componentRuntimePredictorMap.put(component, pred);
-				} finally {
-					this.lock.unlock();
-				}
-			});
-
-			LOGGER.info("Built base components successfully:");
-			this.componentRuntimePredictorMap.values().stream().map(x -> x.toString()).forEach(LOGGER::info);
+			}).forEach(runnables::add);
 		}
 
 		// Build preprocessor data transformation predictors
-		if (CONF_BUILD_PREPROCESSOR_EFFECTS) {
+		if (CONFIG.getBuildPreprocessorEffects()) {
 			KVStoreCollection preprocessorData = DataBasedComponentPredictorUtil.readCSV(new File("python/data/metafeaturetransformations_essential.csv"), new HashMap<>());
 			preprocessorData.removeAnyContained(cleanTrainingData, true);
-			KVStoreCollectionOneLayerPartition preprocessorPartition = new KVStoreCollectionOneLayerPartition("algorithm", preprocessorData);
+			KVStoreCollectionOneLayerPartition preprocessorPartition = new KVStoreCollectionOneLayerPartition(CONFIG.getLabelForAlgorithm(), preprocessorData);
 
-			preprocessorPartition.getData().entrySet().parallelStream().forEach(preprocessorEntry -> {
-				if (CONF_TEST_PIPELINE_ONLY && !CONF_ACTIVE_PIPELINE_COMPONENTS.contains(preprocessorEntry.getKey())) {
-					return;
-				}
-
-				// TODO: Load the data of the parameterized preprocessor.
-				KVStoreCollection parameterizedData = null;
-				PreprocessingEffectPredictor pred;
-				try {
-					pred = new PreprocessingEffectPredictor(preprocessorEntry.getKey(), preprocessorEntry.getValue(), parameterizedData);
-					this.lock.lock();
-					try {
-						this.preprocessingEffectPredictorMap.put(preprocessorEntry.getKey(), pred);
-					} finally {
-						this.lock.unlock();
+			preprocessorPartition.getData().entrySet().stream().map(preprocessorEntry -> new Runnable() {
+				@Override
+				public void run() {
+					if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(preprocessorEntry.getKey())) {
+						return;
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
+
+					KVStoreCollection parameterizedData = null;
+					try {
+						parameterizedData = DataBasedComponentPredictorUtil.readCSV(new File("python/data/parameterized/runtimes_" + preprocessorEntry.getKey() + "_parametrized.csv"), new HashMap<>());
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					PreprocessingEffectPredictor pred;
+					try {
+						pred = new PreprocessingEffectPredictor(preprocessorEntry.getKey(), preprocessorEntry.getValue(), parameterizedData);
+						SimpleHierarchicalRFSafeGuard.this.lock.lock();
+						try {
+							SimpleHierarchicalRFSafeGuard.this.preprocessingEffectPredictorMap.put(preprocessorEntry.getKey(), pred);
+						} finally {
+							SimpleHierarchicalRFSafeGuard.this.lock.unlock();
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
-			});
-			LOGGER.info("Built preprocessor meta feature transformation effect predictors:");
-			this.preprocessingEffectPredictorMap.values().stream().map(x -> x.toString()).forEach(LOGGER::info);
+			}).forEach(runnables::add);
 		}
 
 		// Build meta learner predictors
-		if (CONF_BUILD_META_LEARNERS) {
-			for (File csvFile : META_LEARNER_DIR.listFiles()) {
+		if (CONFIG.getBuildMetaLearnerComponents()) {
+			for (File csvFile : CONFIG.getMetaLearnerDirectory().listFiles()) {
 				if (!csvFile.getName().endsWith(".csv")) {
 					continue;
 				}
+
 				KVStoreCollection metaLearnerData = DataBasedComponentPredictorUtil.readCSV(csvFile, new HashMap<>());
 				metaLearnerData.removeAnyContained(cleanTrainingData, true);
-				String algorithm = metaLearnerData.get(0).getAsString("algorithm");
+				String algorithm = metaLearnerData.get(0).getAsString(CONFIG.getLabelForAlgorithm());
 
-				if (CONF_TEST_PIPELINE_ONLY && !CONF_ACTIVE_PIPELINE_COMPONENTS.contains(algorithm)) {
+				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(algorithm)) {
 					continue;
 				}
-
-				this.metaLearnerPredictorMap.put(algorithm, new MetaLearnerEvaluationTimePredictor(algorithm, metaLearnerData));
+				runnables.add(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							MetaLearnerEvaluationTimePredictor pred = new MetaLearnerEvaluationTimePredictor(algorithm, metaLearnerData);
+							SimpleHierarchicalRFSafeGuard.this.lock.lock();
+							try {
+								SimpleHierarchicalRFSafeGuard.this.metaLearnerPredictorMap.put(algorithm, pred);
+							} finally {
+								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
+							}
+						} catch (Exception e) {
+							LOGGER.error("Could not instantiate predictor for meta learner {}.", algorithm);
+						}
+					}
+				});
 			}
 			LOGGER.info("Built meta learner evaluation time predictors:");
 			this.metaLearnerPredictorMap.values().stream().map(x -> x.toString()).forEach(LOGGER::info);
 		}
+
+		ExecutorService pool = Executors.newFixedThreadPool(CONFIG.getNumCPUs());
+		runnables.stream().forEach(pool::submit);
+
+		pool.shutdown();
+		pool.awaitTermination(1, TimeUnit.HOURS);
+
+		LOGGER.info("Instantiated safe guard with basic component predictors for:\n{}", this.componentRuntimePredictorMap.keySet().stream().collect(Collectors.joining("\n")));
+		LOGGER.info("Instantiated safe guard with preprocessing effect predictors for:\n{}", this.preprocessingEffectPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
+		LOGGER.info("Instantiated safe guard with meta learning predictors for:\n{}", this.metaLearnerPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
+
+	}
+
+	@Override
+	public boolean predictWillAdhereToTimeout(final ComponentInstance ci, final Timeout timeout) throws Exception {
+		return this.predictEvaluationTime(ci, this.train, this.test) * this.benchmarkFactor < timeout.seconds();
 	}
 
 	public double predictInductionTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
@@ -228,7 +305,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		} else {
 			ciw = new MLComponentInstanceWrapper(ci);
 		}
-		return this.predictInductionTime(ciw, new MetaFeatureContainer(dTrain));
+		return this.predictInductionTime(ciw, new MetaFeatureContainer(dTrain)) * this.inductionCalibrationFactor;
 	}
 
 	public double predictInferenceTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest) throws Exception {
@@ -279,20 +356,17 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		} else {
 			ciw = new MLComponentInstanceWrapper(ci);
 		}
-		return this.predictInferenceTime(ciw, new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest));
+		return this.predictInferenceTime(ciw, new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest)) * this.inferenceCalibrationFactor;
 	}
 
 	@Override
-	public void updateWithActualInformation(final ComponentInstance ci, final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest, final double inductionTime, final double inferenceTime) {
-		this.updateWithActualInformation(ci, new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest), inductionTime, inferenceTime);
-	}
-
-	public void updateWithActualInformation(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain, final MetaFeatureContainer metaFeaturesTest, final double inductionTime, final double inferenceTime) {
+	public void updateWithActualInformation(final ComponentInstance ci, final ITimeTrackingLearner wrappedLearner) {
 		MLComponentInstanceWrapper ciw = new MLComponentInstanceWrapper(ci);
 		if (ciw.isBaseLearner()) {
 			IBaseComponentEvaluationTimePredictor pred = this.componentRuntimePredictorMap.get(ciw.getComponent().getName());
-			pred.setActualDefaultConfigurationInductionTime(metaFeaturesTrain, inductionTime);
-			pred.setActualDefaultConfigurationInferenceTime(metaFeaturesTrain, metaFeaturesTest, inferenceTime);
+			pred.setActualDefaultConfigurationInductionTime(new MetaFeatureContainer(this.train), wrappedLearner.getFitTimes().stream().mapToDouble(x -> (double) x).average().getAsDouble());
+			pred.setActualDefaultConfigurationInferenceTime(new MetaFeatureContainer(this.train), new MetaFeatureContainer(this.test), wrappedLearner.getBatchPredictionTimes().stream().mapToDouble(x -> (double) x).average().getAsDouble());
 		}
 	}
+
 }
