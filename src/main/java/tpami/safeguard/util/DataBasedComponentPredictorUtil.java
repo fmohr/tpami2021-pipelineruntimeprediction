@@ -52,8 +52,8 @@ import weka.core.Instances;
 public class DataBasedComponentPredictorUtil {
 
 	private static final String[] COMPONENT_IDS = { "multilayerperceptron", "bayesnet", "decisionstump", "decisiontable", "ibk", "logistic", "naivebayes", "oner", "part", "randomforest", "randomtree", "smo", "votedperceptron", "kstar",
-			"reptree", "sl", "j48", "lmt", "jrip", "naivebayesmultinomial", "zeror", "adaboostm1", "bagging", "logitboost", "randomcommittee", "randomsubspace" };
-	private static final Class<?>[] WEKA_CLASSES = { MultilayerPerceptron.class, BayesNet.class, DecisionStump.class, DecisionTable.class, IBk.class, Logistic.class, NaiveBayes.class, OneR.class, PART.class, RandomForest.class,
+			"reptree", "simplelogistic", "j48", "lmt", "jrip", "naivebayesmultinomial", "zeror", "adaboostm1", "bagging", "logitboost", "randomcommittee", "randomsubspace" };
+	public static final Class<?>[] WEKA_CLASSES = { MultilayerPerceptron.class, BayesNet.class, DecisionStump.class, DecisionTable.class, IBk.class, Logistic.class, NaiveBayes.class, OneR.class, PART.class, RandomForest.class,
 			RandomTree.class, SMO.class, VotedPerceptron.class, KStar.class, REPTree.class, SimpleLogistic.class, J48.class, LMT.class, JRip.class, NaiveBayesMultinomial.class, ZeroR.class, AdaBoostM1.class, Bagging.class, LogitBoost.class,
 			RandomCommittee.class, RandomSubSpace.class };
 
@@ -70,26 +70,26 @@ public class DataBasedComponentPredictorUtil {
 		case "weka.attributeSelection.CfsSubsetEval":
 			switch (searcher.getComponent().getName()) {
 			case "weka.attributeSelection.BestFirst":
-				return "bf/cfssubseteval";
+				return "bestfirst_cfssubseteval";
 			case "weka.attributeSelection.GreedyStepwise":
-				return "gsw/cfssubseteval";
+				return "greedystepwise_cfssubseteval";
 			default:
 				return null;
 			}
 		case "weka.attributeSelection.CorrelationAttributeEval":
-			return "correlationAS";
+			return "ranker_correlationattributeeval";
 		case "weka.attributeSelection.GainRatioAttributeEval":
-			return "GainRatioAS";
+			return "ranker_gainratioattributeeval";
 		case "weka.attributeSelection.InfoGainAttributeEval":
-			return "InfoGainAS";
+			return "ranker_infogainattributeeval";
 		case "weka.attributeSelection.OneRAttributeEval":
-			return "OneRAS";
+			return "ranker_onerattributeeval";
 		case "weka.attributeSelection.PrincipalComponents":
-			return "PCAAS";
+			return "ranker_principalcomponents";
 		case "weka.attributeSelection.ReliefFAttributeEval":
-			return "ReliefAS";
+			return "ranker_relieffattributeeval";
 		case "weka.attributeSelection.SymmetricalUncertAttributeEval":
-			return "SymmetricalUncertAS";
+			return "ranker_symmetricaluncertattributeeval";
 		default:
 			return null;
 		}
@@ -127,10 +127,11 @@ public class DataBasedComponentPredictorUtil {
 
 	public static KVStoreCollection readCSV(final File csvFile, final Map<String, String> commonFields) throws IOException {
 		alreadyWarned.clear();
-		KVStoreCollection col = KVStoreUtil.readFromCSVWithHeader(csvFile, commonFields, ",");
-		for (IKVStore store : col) {
-			store.put("algorithm", mapID2Weka(store.getAsString("algorithm")));
+		if (!csvFile.exists()) {
+			throw new IllegalArgumentException("CSV file does not exist.");
 		}
+
+		KVStoreCollection col = KVStoreUtil.readFromCSVWithHeader(csvFile, commonFields, ",");
 		return col;
 	}
 
@@ -201,25 +202,27 @@ public class DataBasedComponentPredictorUtil {
 
 		Instances data = new Instances(col.getCollectionID() + "-" + targetAttributeName, attributes, col.size());
 		for (IKVStore store : col) {
-			Instance newInst = new DenseInstance(data.numAttributes());
-			for (Attribute att : attributes) {
-				if (att.isNumeric()) {
-					try {
-						newInst.setValue(att, store.getAsDouble(att.name()));
-					} catch (NumberFormatException e) {
-						if (att.name().equals("applicationtime")) {
-							continue;
+			try {
+				Instance newInst = new DenseInstance(data.numAttributes());
+				for (Attribute att : attributes) {
+					if (att.isNumeric()) {
+						try {
+							newInst.setValue(att, store.getAsDouble(att.name()));
+						} catch (NumberFormatException e) {
+							if (att.name().equals("applicationtime")) {
+								continue;
+							}
+							throw e;
 						}
-						System.out.println(store);
-						System.out.println(att.name());
-						throw e;
+					} else if (att.isNominal()) {
+						newInst.setValue(att, store.getAsString(att.name()));
 					}
-				} else if (att.isNominal()) {
-					newInst.setValue(att, store.getAsString(att.name()));
 				}
+				newInst.setDataset(data);
+				data.add(newInst);
+			} catch (NumberFormatException e) {
+
 			}
-			newInst.setDataset(data);
-			data.add(newInst);
 		}
 		data.setClassIndex(data.numAttributes() - 1);
 		return data;

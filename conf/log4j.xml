@@ -52,7 +52,6 @@
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="tpami">
@@ -61,7 +60,6 @@
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="ai.libs.jaicore.basic.algorithm.GeneralAlgorithmTester">
@@ -72,12 +70,15 @@
   	<level value="trace" />
   </logger>
   
+  <logger name="ai.libs.jaicore.experiments">
+  	<level value="debug" />
+  </logger>
+  
   <logger name="MLPlanCLI">
     <appender-ref ref="console" />
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="ai.libs.jaicore.graphvisualizer">
@@ -89,49 +90,51 @@
   </logger>
   
   <logger name="hasco">
-    <level value="warn" />
+    <level value="debug" />
     <appender-ref ref="console" />
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="mlplan">
-    <level value="info" />
+    <level value="debug" />
     <appender-ref ref="console" />
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo">
-    <level value="info" />
+    <level value="debug" />
+  </logger>
+  
+  <logger name="mlplan.searchselectsplitter.sampler">
+  	<level value="info" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco">
-    <level value="warn" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.solutionevaluator">
-    <level value="info" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.solutionevaluator.benchmark">
-    <level value="warn" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.search">
-    <level value="warn" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.search._orgraphsearch._algorithm">
-    <level value="warn" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.search.nodeevaluator">
-    <level value="warn" />
+    <level value="debug" />
   </logger>
   
   <logger name="mlplan.optimizingfactory.optAlgo.hasco.search.treepolicy">
@@ -145,9 +148,9 @@
   <logger name="hasco.core.isValidParameterRangeRefinementPredicate">
   	<level value="warn" />
   </logger>
-  
+    
   <logger name="ai.libs.jaicore.timing">
-  	<level value="trace" />
+  	<level value="warn" />
   </logger>
   
   <logger name="ai.libs.jaicore.concurrent">
@@ -187,7 +190,6 @@
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
-    <appender-ref ref="traceFileAppender" />
   </logger>
   
   <logger name="testedalgorithm.searchselectsplitter.sampler">

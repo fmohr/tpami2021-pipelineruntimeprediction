@@ -44,4 +44,7 @@ public interface IExampleMCCConfig extends IExperimentSetConfig {
 
 	@Key(datasetFolder)
 	public File getDatasetFolder();
+
+	@Key("eval_table")
+	public String getEvalTable();
 }

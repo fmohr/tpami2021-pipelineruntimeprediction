@@ -66,17 +66,27 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 
 		// meta classifier behavior models
 		this.numBaseLearnerBuilds = this.getModel();
+		long start = System.currentTimeMillis();
 		this.numBaseLearnerBuilds.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BUILDS, this.features));
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 		this.inductionNumBaseLearnerInferences = this.getModel();
+		start = System.currentTimeMillis();
 		this.inductionNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INDUCTION, this.features));
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 		this.inferenceNumBaseLearnerInferences = this.getModel();
+		start = System.currentTimeMillis();
 		this.inferenceNumBaseLearnerInferences.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_BL_CALLS_INFERENCE, this.features));
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 
 		// meta feature transformation models
 		this.numInstances = this.getModel();
+		start = System.currentTimeMillis();
 		this.numInstances.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMINSTANCES, this.features));
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 		this.numAttributes = this.getModel();
+		start = System.currentTimeMillis();
 		this.numAttributes.buildClassifier(DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(metaLearnerEffectData, TARGET_SUB_NUMATTRIBUTES, this.features));
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 
 	}
 

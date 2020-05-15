@@ -25,11 +25,13 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BaseComponentEvaluationTimePredictor.class);
 
-	private static final String[] FEATURES_INDUCTION = { "fitsize", "fitattributes" };
+	private static final String[] FEATURES_INDUCTION = { "fitsize", "numattributes" };
 	private static final String TARGET_INDUCTION = "fittime";
-	private static final String[] FEATURES_INFERENCE = { "fitsize", "fitattributes" };
+	private static final String[] FEATURES_INFERENCE = { "fitsize", "numattributes" };
 	private static final String TARGET_INFERENCE = "applicationtime";
-	private static final List<String> NON_PARAMETER_COLUMNS = Arrays.asList("openmlid", "totalsize", "fitsize", "applicationsize", "fitattributes", "seed", "algorithm", "fittime", "applicationtime");
+	private static final List<String> NON_PARAMETER_COLUMNS = Arrays.asList("openmlid", "totalsize", "fitsize", "applicationsize", "seed", "algorithm", "algorithmoptions", "fittime", "applicationtime", "fittime_def", "applicationtime_def",
+			"openmlid", "totalsize", "algorithm", "algorithmoptions", "seed", "fitsize", "numattributes", "numlabels", "numnumericattributes", "numsymbolicattributes", "numberofcategories", "numericattributesafterbinarization",
+			"totalvariance", "attributestocover50pctvariance", "attributestocover90pctvariance", "attributestocover95pctvariance", "attributestocover99pctvariance", "applicationsize", "fittime", "applicationtime");
 
 	private static final int NUM_TREES = 100;
 
@@ -55,14 +57,19 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 		/* Build models for default configuration */
 		LOGGER.debug("Build default configuration model for induction of {}", componentName);
 		this.defaultInductionPredictor = this.getModel();
+
+		long start = System.currentTimeMillis();
 		Instances defaultInduction = DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(defaultData, TARGET_INDUCTION, FEATURES_INDUCTION);
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 		this.defaultInductionPredictor.buildClassifier(defaultInduction);
 
 		this.defaultSchema = new Instances(defaultInduction, 0);
 
 		LOGGER.debug("Build default configuration model for inference of {}", componentName);
 		this.defaultInferencePredictor = this.getModel();
+		start = System.currentTimeMillis();
 		Instances defaultInference = DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(defaultData, TARGET_INFERENCE, FEATURES_INFERENCE);
+		System.out.println("Dataset transform needed " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
 		this.defaultInferencePredictor.buildClassifier(defaultInference);
 
 		if (parameterizedData != null && !parameterizedData.isEmpty()) {
@@ -72,6 +79,7 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 			LOGGER.debug("Build parameterized configuration model for induction of {}", componentName);
 			List<String> inductionFeatures = Arrays.stream(FEATURES_INDUCTION).collect(Collectors.toList());
 			inductionFeatures.addAll(this.parameterFeatures);
+
 			this.parameterizedInductionPredictor = this.getModel();
 			Instances parameterizedInductionData = DataBasedComponentPredictorUtil.kvStoreCollectionToWekaInstances(parameterizedData, TARGET_INDUCTION, inductionFeatures);
 			this.parameterizedInductionPredictor.buildClassifier(parameterizedInductionData);
@@ -155,6 +163,7 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 	public Instance toParameterizedInstance(final MetaFeatureContainer metaFeatureContainer, final ComponentInstance ci) {
 		double[] metaFeatures = metaFeatureContainer.toFeatureVector();
 		Instance instance = new DenseInstance(this.parameterizedSchema.numAttributes());
+		instance.setDataset(this.parameterizedSchema);
 		int currentI = 0;
 		for (currentI = 0; currentI < metaFeatures.length; currentI++) {
 			instance.setValue(currentI, metaFeatures[currentI]);
@@ -162,14 +171,17 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 
 		for (int i = 0; i < this.parameterFeatures.size(); i++) {
 			if (this.parameterizedSchema.attribute(currentI).isNumeric()) {
-				instance.setValue(currentI, Double.parseDouble(ci.getParameterValue(this.parameterFeatures.get(i))));
+				if (Arrays.asList("true", "false").contains(ci.getParameterValue(this.parameterFeatures.get(i)))) {
+					instance.setValue(currentI, ci.getParameterValue(this.parameterFeatures.get(i)).equals("true") ? 1.0 : 0.0);
+				} else {
+					instance.setValue(currentI, Double.parseDouble(ci.getParameterValue(this.parameterFeatures.get(i))));
+				}
 			} else {
 				instance.setValue(currentI, ci.getParameterValue(this.parameterFeatures.get(i)));
 			}
 			currentI++;
 		}
 
-		instance.setDataset(this.parameterizedSchema);
 		return instance;
 	}
 

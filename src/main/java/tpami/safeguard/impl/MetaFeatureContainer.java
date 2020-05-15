@@ -44,6 +44,12 @@ public class MetaFeatureContainer implements IMetaFeatureContainer {
 		this.dataset = dataset;
 	}
 
+	public MetaFeatureContainer(final MetaFeatureContainer other) {
+		this.featureMap = new HashMap<>();
+		this.featureMap.putAll(other.featureMap);
+		this.dataset = other.dataset;
+	}
+
 	public MetaFeatureContainer(final double numInstances, final double numAttributes) {
 		this.featureMap = new HashMap<>();
 		this.featureMap.put(EMetaFeature.NUM_INSTANCES, numInstances);

@@ -1,15 +1,12 @@
 package tpami.safeguard;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
-import ai.libs.jaicore.basic.kvstore.KVStoreCollectionOneLayerPartition;
 import ai.libs.jaicore.basic.sets.Pair;
 import ai.libs.jaicore.ml.core.evaluation.evaluator.MonteCarloCrossValidationEvaluator;
 import ai.libs.mlplan.core.ITimeTrackingLearner;
@@ -48,6 +44,11 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleHierarchicalRFSafeGuard.class);
 	private static final ISimpleHierarchicalRFSafeGuardConfig CONFIG = ConfigFactory.create(ISimpleHierarchicalRFSafeGuardConfig.class);
+
+	public static final String FILE_PATTERN_BASIC_DEF = "runtimes_%s_default.csv";
+	public static final String FILE_PATTERN_BASIC_PAR = "runtimes_%s_parametrized.csv";
+	public static final String FILE_PATTERN_PREPROCESSOR = "%s.csv";
+	public static final String FILE_PATTERN_METALEARNER = "metalearner_parametereffects_%s.csv";
 
 	private Lock lock = new ReentrantLock();
 
@@ -94,7 +95,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			this.inferenceCalibrationFactor = calibrationFactors.getY();
 		} else {
 			this.inductionCalibrationFactor = 1.0;
-			this.inferenceCalibrationFactor = 1.0;
+			this.inferenceCalibrationFactor = 0.05;
 		}
 		System.err.println("Calibration factors: " + this.inductionCalibrationFactor + " / " + this.inferenceCalibrationFactor);
 
@@ -111,128 +112,138 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		cleanTrainingData.put(CONFIG.getLabelForDatasetID(), Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList()));
 
 		List<Runnable> runnables = new ArrayList<>();
-		/*  Build component predictors */
+		// Build component predictors
 		if (CONFIG.getBuildBaseComponents()) {
-			// Load data...
-			KVStoreCollection baseDefaultCol = DataBasedComponentPredictorUtil.readCSV(CONFIG.getBasicEvaluationRuntimeFile(), new HashMap<>());
-			List<Integer> datasetIDs = new ArrayList<>(baseDefaultCol.stream().map(x -> x.getAsInt("openmlid")).collect(Collectors.toSet()));
-			Collections.sort(datasetIDs);
-			System.out.println(datasetIDs);
+			// Build runtime predictors for basic components (base learners + preprocessors)
+			CONFIG.getBasicComponentsForRuntime().stream().forEach(name -> {
+				// Speed up of build phase for base components (just for testing purposes)
+				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(name)) {
+					LOGGER.info("Skip building base component model for " + name);
+					return;
+				}
 
-			baseDefaultCol.removeAnyContained(cleanTrainingData, true);
-			rescaleApplicationTime(baseDefaultCol);
+				runnables.add(new Runnable() {
+					@Override
+					public void run() {
 
-			Set<String> ids = baseDefaultCol.stream().map(x -> x.getAsString(CONFIG.getLabelForDatasetID())).collect(Collectors.toSet());
-			List<String> idList = new ArrayList<>(ids);
-			Collections.sort(idList);
-
-			Set<String> components = baseDefaultCol.stream().map(x -> x.getAsString(CONFIG.getLabelForAlgorithm())).collect(Collectors.toSet());
-			// Partition kvstore collections and fill predictor map
-			KVStoreCollectionOneLayerPartition defaultPartition = new KVStoreCollectionOneLayerPartition(CONFIG.getLabelForAlgorithm(), baseDefaultCol);
-
-			components.stream().map(component -> new Runnable() {
-				@Override
-				public void run() {
-					// Speed up of build phase for base components (just for testing purposes)
-					if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(component)) {
-						return;
-					}
-					File paramCSV = new File(CONFIG.getBasicParameterizedDirectory(), String.format(CONFIG.getParameterizedFileNameTemplate(), DataBasedComponentPredictorUtil.mapWeka2ID(component)));
-					KVStoreCollection paramCol = null;
-					if (paramCSV.exists()) {
 						try {
-							paramCol = DataBasedComponentPredictorUtil.readCSV(paramCSV, new HashMap<>());
-							paramCol.removeAnyContained(cleanTrainingData, true);
-							rescaleApplicationTime(paramCol);
-						} catch (IOException e) {
-							LOGGER.warn("Could not read csv file {}", paramCSV.getAbsolutePath(), e);
+							// read dataset for default parameterization
+							File defaultDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(FILE_PATTERN_BASIC_DEF, name));
+							long start = System.currentTimeMillis();
+							KVStoreCollection defaultCol = DataBasedComponentPredictorUtil.readCSV(defaultDatasetFile, new HashMap<>());
+							System.out.println("File read for " + defaultDatasetFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+							// read dataset for parameterized data points
+							File paramDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(FILE_PATTERN_BASIC_PAR, name));
+							KVStoreCollection paramCol = null;
+							if (paramDatasetFile.exists()) {
+								start = System.currentTimeMillis();
+								paramCol = DataBasedComponentPredictorUtil.readCSV(paramDatasetFile, new HashMap<>());
+								System.out.println("File read of " + paramDatasetFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+							}
+
+							// clean from excluded dataset ids
+							// rescale application times
+							defaultCol.removeAnyContained(cleanTrainingData, true);
+							rescaleApplicationTime(defaultCol);
+							if (paramCol != null) {
+								paramCol.removeAnyContained(cleanTrainingData, true);
+								rescaleApplicationTime(paramCol);
+							}
+
+							// Build predictor for this component
+							IBaseComponentEvaluationTimePredictor pred = null;
+							try {
+								pred = new BaseComponentEvaluationTimePredictor(name, defaultCol, paramCol);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+
+							SimpleHierarchicalRFSafeGuard.this.lock.lock();
+							try {
+								SimpleHierarchicalRFSafeGuard.this.componentRuntimePredictorMap.put(DataBasedComponentPredictorUtil.mapID2Weka(name), pred);
+							} finally {
+								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
+							}
+							LOGGER.info("Done building base component model for " + name);
+						} catch (Exception e) {
+							LOGGER.warn("Could not build predictor for {} due to exception", name, e);
 						}
 					}
-					IBaseComponentEvaluationTimePredictor pred = null;
-					try {
-						pred = new BaseComponentEvaluationTimePredictor(component, defaultPartition.getData().get(component), paramCol);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-
-					SimpleHierarchicalRFSafeGuard.this.lock.lock();
-					try {
-						SimpleHierarchicalRFSafeGuard.this.componentRuntimePredictorMap.put(component, pred);
-					} finally {
-						SimpleHierarchicalRFSafeGuard.this.lock.unlock();
-					}
-				}
-			}).forEach(runnables::add);
+				});
+			});
 		}
 
 		// Build preprocessor data transformation predictors
 		if (CONFIG.getBuildPreprocessorEffects()) {
-			KVStoreCollection preprocessorData = DataBasedComponentPredictorUtil.readCSV(new File("python/data/metafeaturetransformations_essential.csv"), new HashMap<>());
-			preprocessorData.removeAnyContained(cleanTrainingData, true);
-			KVStoreCollectionOneLayerPartition preprocessorPartition = new KVStoreCollectionOneLayerPartition(CONFIG.getLabelForAlgorithm(), preprocessorData);
-
-			preprocessorPartition.getData().entrySet().stream().map(preprocessorEntry -> new Runnable() {
-				@Override
-				public void run() {
-					if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(preprocessorEntry.getKey())) {
-						return;
-					}
-
-					KVStoreCollection parameterizedData = null;
-					try {
-						parameterizedData = DataBasedComponentPredictorUtil.readCSV(new File("python/data/parameterized/runtimes_" + preprocessorEntry.getKey() + "_parametrized.csv"), new HashMap<>());
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-					PreprocessingEffectPredictor pred;
-					try {
-						pred = new PreprocessingEffectPredictor(preprocessorEntry.getKey(), preprocessorEntry.getValue(), parameterizedData);
-						SimpleHierarchicalRFSafeGuard.this.lock.lock();
-						try {
-							SimpleHierarchicalRFSafeGuard.this.preprocessingEffectPredictorMap.put(preprocessorEntry.getKey(), pred);
-						} finally {
-							SimpleHierarchicalRFSafeGuard.this.lock.unlock();
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			}).forEach(runnables::add);
-		}
-
-		// Build meta learner predictors
-		if (CONFIG.getBuildMetaLearnerComponents()) {
-			for (File csvFile : CONFIG.getMetaLearnerDirectory().listFiles()) {
-				if (!csvFile.getName().endsWith(".csv")) {
-					continue;
-				}
-
-				KVStoreCollection metaLearnerData = DataBasedComponentPredictorUtil.readCSV(csvFile, new HashMap<>());
-				metaLearnerData.removeAnyContained(cleanTrainingData, true);
-				String algorithm = metaLearnerData.get(0).getAsString(CONFIG.getLabelForAlgorithm());
-
-				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(algorithm)) {
-					continue;
+			CONFIG.getPreprocessorsForTransformEffect().stream().forEach(name -> {
+				// Speed up of build phase for preprocessing effects (just for testing purposes)
+				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(name)) {
+					LOGGER.info("Skip building preprocessor transform effect model for " + name);
+					return;
 				}
 				runnables.add(new Runnable() {
 					@Override
 					public void run() {
+
 						try {
-							MetaLearnerEvaluationTimePredictor pred = new MetaLearnerEvaluationTimePredictor(algorithm, metaLearnerData);
+							// Read in dataset for learning predictors of meta features transformation by preprocessors.
+							File ppTransformFile = new File(CONFIG.getPreprocessorsForTransformEffectDirectory(), String.format(FILE_PATTERN_PREPROCESSOR, name));
+							long start = System.currentTimeMillis();
+							KVStoreCollection ppTransformData = DataBasedComponentPredictorUtil.readCSV(ppTransformFile, new HashMap<>());
+							System.out.println("File read of " + ppTransformFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+
+							// Build predictor
+							PreprocessingEffectPredictor pred = new PreprocessingEffectPredictor(name, ppTransformData);
 							SimpleHierarchicalRFSafeGuard.this.lock.lock();
 							try {
-								SimpleHierarchicalRFSafeGuard.this.metaLearnerPredictorMap.put(algorithm, pred);
+								SimpleHierarchicalRFSafeGuard.this.preprocessingEffectPredictorMap.put(name, pred);
 							} finally {
 								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
 							}
+							LOGGER.info("Done building preprocessor transform effect model for " + name);
 						} catch (Exception e) {
-							LOGGER.error("Could not instantiate predictor for meta learner {}.", algorithm);
+							LOGGER.warn("Could not build preprocessing transform predictor for {} due to exception", name, e);
 						}
 					}
 				});
-			}
-			LOGGER.info("Built meta learner evaluation time predictors:");
-			this.metaLearnerPredictorMap.values().stream().map(x -> x.toString()).forEach(LOGGER::info);
+			});
+		}
+
+		// Build meta learner predictors
+		if (CONFIG.getBuildMetaLearnerComponents()) {
+			CONFIG.getMetaLearnerTransformEffect().stream().forEach(name -> {
+				// Speed up of build phase for meta learner effects (just for testing purposes)
+				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(name)) {
+					LOGGER.info("Skip building meta learner transform effect model for " + name);
+					return;
+				}
+
+				runnables.add(new Runnable() {
+					@Override
+					public void run() {
+
+						try {
+							// Read in dataset for fitting predictors of meta features transformation by meta learners.
+							File metaLearnerFile = new File(CONFIG.getMetaLearnerTransformEffectDirectory(), String.format(FILE_PATTERN_METALEARNER, name));
+							long start = System.currentTimeMillis();
+							KVStoreCollection metaLearnerData = DataBasedComponentPredictorUtil.readCSV(metaLearnerFile, new HashMap<>());
+							System.out.println("File read of " + metaLearnerFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+
+							// Build predictor
+							MetaLearnerEvaluationTimePredictor pred = new MetaLearnerEvaluationTimePredictor(name, metaLearnerData);
+							SimpleHierarchicalRFSafeGuard.this.lock.lock();
+							try {
+								SimpleHierarchicalRFSafeGuard.this.metaLearnerPredictorMap.put(DataBasedComponentPredictorUtil.mapID2Weka(name), pred);
+							} finally {
+								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
+							}
+							LOGGER.info("Done building meta leaner transform effect model for " + name);
+						} catch (Exception e) {
+							LOGGER.warn("Could not instantiate predictor for meta learner {}.", name);
+						}
+					}
+				});
+			});
 		}
 
 		ExecutorService pool = Executors.newFixedThreadPool(CONFIG.getNumCPUs());
@@ -244,7 +255,6 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		LOGGER.info("Instantiated safe guard with basic component predictors for:\n{}", this.componentRuntimePredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with preprocessing effect predictors for:\n{}", this.preprocessingEffectPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with meta learning predictors for:\n{}", this.metaLearnerPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
-
 	}
 
 	@Override
@@ -264,8 +274,12 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			LOGGER.debug("Runtime after applying preprocessor: {}", inductionTime);
 			// Compute features for after
 			String preprocessorID = DataBasedComponentPredictorUtil.componentInstanceToPreprocessorID(preprocessor);
-			IMetaFeatureTransformationPredictor ppPred = this.preprocessingEffectPredictorMap.get(preprocessorID);
-			MetaFeatureContainer metaFeaturesAfterPP = ppPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTrain);
+			MetaFeatureContainer metaFeaturesAfterPP = new MetaFeatureContainer(metaFeaturesTrain);
+
+			if (this.preprocessingEffectPredictorMap.containsKey(preprocessorID)) {
+				IMetaFeatureTransformationPredictor ppPred = this.preprocessingEffectPredictorMap.get(preprocessorID);
+				metaFeaturesAfterPP = ppPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTrain);
+			}
 			LOGGER.debug("Meta features after preprocessing: {}", metaFeaturesAfterPP);
 
 			// Compute runtime for classifier
@@ -315,9 +329,16 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			inferenceTime += this.predictInferenceTime(preprocessor, metaFeaturesTrain, metaFeaturesTest);
 			LOGGER.debug("Runtime after applying preprocessor to test data: {}", inferenceTime);
 
-			IMetaFeatureTransformationPredictor ppEffectPred = this.preprocessingEffectPredictorMap.get(DataBasedComponentPredictorUtil.componentInstanceToPreprocessorID(preprocessor));
-			MetaFeatureContainer metaFeaturesTrainAfterPP = ppEffectPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTrain);
-			MetaFeatureContainer metaFeaturesTestAfterPP = ppEffectPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTest);
+			String ppID = DataBasedComponentPredictorUtil.componentInstanceToPreprocessorID(preprocessor);
+
+			MetaFeatureContainer metaFeaturesTrainAfterPP = new MetaFeatureContainer(metaFeaturesTrain);
+			MetaFeatureContainer metaFeaturesTestAfterPP = new MetaFeatureContainer(metaFeaturesTest);
+
+			if (this.preprocessingEffectPredictorMap.containsKey(ppID)) {
+				IMetaFeatureTransformationPredictor ppEffectPred = this.preprocessingEffectPredictorMap.get(ppID);
+				metaFeaturesTrainAfterPP = ppEffectPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTrain);
+				metaFeaturesTestAfterPP = ppEffectPred.predictTransformedMetaFeatures(preprocessor, metaFeaturesTest);
+			}
 
 			inferenceTime += this.predictInferenceTime(ciw.getClassifier(), metaFeaturesTrainAfterPP, metaFeaturesTestAfterPP);
 			LOGGER.debug("Runtime after applying classifier to test data: {}", inferenceTime);

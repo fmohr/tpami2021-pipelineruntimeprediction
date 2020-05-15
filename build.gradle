@@ -41,15 +41,12 @@ dependencies {
  		exclude group: 'net.sourceforge.owlapi'
  		exclude group: 'org.graphstream'
  		exclude group: 'com.github.graphstream'
-		exclude group: 'mysql'
 	}
-    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.20'
 	testCompile group: 'junit', name: 'junit', version: '4.12'
-	//compile group: 'org.nd4j', name: 'nd4j-native-platform', version: '1.0.0-beta2'
-	//compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
+	compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
 	compile "org.nd4j:nd4j-native-platform:1.0.0-beta6"
-	compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
-	compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
+	//compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
+	//compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
 }
 
 repositories {
@@ -144,6 +141,17 @@ task resultrecoverer(type: Jar) {
     }
     zip64 = true
     baseName = 'resultrecoverer'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
+task automlexperimenter(type: Jar) {
+    manifest {
+		attributes 'Main-Class': ' tpami.automlexperimenter.AutoMLExperimenter'
+    }
+    zip64 = true
+    baseName = 'automlExperimenter'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar

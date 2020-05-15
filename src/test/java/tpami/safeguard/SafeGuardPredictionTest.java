@@ -44,6 +44,7 @@ import tpami.safeguard.util.MLComponentInstanceWrapper;
 import weka.attributeSelection.AttributeSelection;
 import weka.attributeSelection.BestFirst;
 import weka.attributeSelection.CfsSubsetEval;
+import weka.attributeSelection.GreedyStepwise;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.meta.Bagging;
@@ -108,7 +109,7 @@ public class SafeGuardPredictionTest {
 			}
 
 			Component comp = cl.getComponentWithName(store.getAsString("algorithm"));
-			ComponentInstance ci = ComponentUtil.defaultParameterizationOfComponent(comp);
+			ComponentInstance ci = ComponentUtil.getDefaultParameterizationOfComponent(comp);
 			double relativeTrainSize = store.getAsDouble("fitsize") / store.getAsDouble("totalsize");
 			List<ILabeledDataset<?>> split = SplitterUtil.getLabelStratifiedTrainTestSplit(data, 0, relativeTrainSize);
 
@@ -144,19 +145,19 @@ public class SafeGuardPredictionTest {
 	@Test
 	public void testDefaultConfigurationPipeline() throws Exception {
 		// Classifier
-		ComponentInstance metaLearner = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName(AdaBoostM1.class.getName()));
-		ComponentInstance baseLearner = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName(J48.class.getName()));
+		ComponentInstance metaLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(AdaBoostM1.class.getName()));
+		ComponentInstance baseLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(J48.class.getName()));
 		metaLearner.getSatisfactionOfRequiredInterfaces().put("W", baseLearner);
 
 		// Preprocessor
-		ComponentInstance preprocessor = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName(AttributeSelection.class.getName()));
-		ComponentInstance searcher = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName(BestFirst.class.getName()));
-		ComponentInstance evaluator = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName(CfsSubsetEval.class.getName()));
+		ComponentInstance preprocessor = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(AttributeSelection.class.getName()));
+		ComponentInstance searcher = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(GreedyStepwise.class.getName()));
+		ComponentInstance evaluator = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(CfsSubsetEval.class.getName()));
 		preprocessor.getSatisfactionOfRequiredInterfaces().put("search", searcher);
 		preprocessor.getSatisfactionOfRequiredInterfaces().put("eval", evaluator);
 
 		// Pipeline
-		ComponentInstance pipeline = ComponentUtil.defaultParameterizationOfComponent(cl.getComponentWithName("pipeline"));
+		ComponentInstance pipeline = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName("pipeline"));
 		pipeline.getSatisfactionOfRequiredInterfaces().put("preprocessor", preprocessor);
 		pipeline.getSatisfactionOfRequiredInterfaces().put("classifier", baseLearner);
 

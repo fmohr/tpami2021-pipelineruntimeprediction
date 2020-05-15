@@ -42,6 +42,19 @@ import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import tpami.safeguard.api.IEvaluationTimeCalibrationModule;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.classifiers.AbstractClassifier;
+import weka.classifiers.bayes.BayesNet;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.bayes.NaiveBayesMultinomial;
+import weka.classifiers.functions.MultilayerPerceptron;
+import weka.classifiers.functions.SimpleLogistic;
+import weka.classifiers.lazy.IBk;
+import weka.classifiers.lazy.KStar;
+import weka.classifiers.rules.DecisionTable;
+import weka.classifiers.trees.DecisionStump;
+import weka.classifiers.trees.J48;
+import weka.classifiers.trees.REPTree;
+import weka.classifiers.trees.RandomForest;
+import weka.classifiers.trees.RandomTree;
 
 public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrationModule {
 
@@ -139,7 +152,34 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 				if (x.getAsInt("fittime") == 0 && x.getAsInt("applicationtime") == 0) {
 					return OptionalDouble.empty();
 				}
-				IWekaClassifier model = new WekaClassifier(AbstractClassifier.forName(x.getAsString("algorithm"), null));
+				List<String> skip = Arrays.asList("ReliefFAS", "cfssubseteval_bf");
+
+				if (skip.contains(x.getAsString("algorithm"))) {
+					return OptionalDouble.of(1.0);
+				}
+
+				Map<String, String> resolve = new HashMap<>();
+				resolve.put("sl", SimpleLogistic.class.getName());
+				resolve.put("naivebayes", NaiveBayes.class.getName());
+				resolve.put("decisionstump", DecisionStump.class.getName());
+				resolve.put("randomtree", RandomTree.class.getName());
+				resolve.put("reptree", REPTree.class.getName());
+				resolve.put("randomforest", RandomForest.class.getName());
+				resolve.put("naivebayesmultinomial", NaiveBayesMultinomial.class.getName());
+				resolve.put("j48", J48.class.getName());
+				resolve.put("kstar", KStar.class.getName());
+				resolve.put("multilayerperceptron", MultilayerPerceptron.class.getName());
+				resolve.put("bayesnet", BayesNet.class.getName());
+				resolve.put("ibk", IBk.class.getName());
+				resolve.put("decisiontable", DecisionTable.class.getName());
+
+				IWekaClassifier model;
+				if (resolve.containsKey(x.getAsString("algorithm"))) {
+					model = new WekaClassifier(AbstractClassifier.forName(resolve.get(x.getAsString("algorithm")), null));
+				} else {
+					model = new WekaClassifier(AbstractClassifier.forName(x.getAsString("algorithm"), null));
+				}
+
 				int openmlID = x.getAsInt("openmlid");
 				int fitSize = x.getAsInt("fitsize");
 				int totalSize = x.getAsInt("totalsize");

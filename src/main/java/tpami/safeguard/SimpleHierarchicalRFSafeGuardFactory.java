@@ -59,4 +59,8 @@ public class SimpleHierarchicalRFSafeGuardFactory implements IEvaluationSafeGuar
 		return new SimpleHierarchicalRFSafeGuard(this.excludeOpenMLDatasets, this.evaluator, this.train, this.test);
 	}
 
+	public void setNumCPUs(final int numCPUs) {
+		SimpleHierarchicalRFSafeGuard.setNumCPUs(numCPUs);
+	}
+
 }
