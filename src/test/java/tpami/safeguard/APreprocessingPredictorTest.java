@@ -31,6 +31,6 @@ public abstract class APreprocessingPredictorTest {
 	}
 
 	protected static File getDatasetFile(final String preprocessor) {
-		return new File(CONFIG.getPreprocessorsForTransformEffectDirectory(), CONFIG.getPreprocessorsForTransformEffectFilePattern(preprocessor));
+		return new File(CONFIG.getPreprocessorsForTransformEffectDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_PREPROCESSOR, preprocessor));
 	}
 }

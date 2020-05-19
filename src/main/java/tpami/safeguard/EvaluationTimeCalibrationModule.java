@@ -30,6 +30,8 @@ import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.eventbus.EventBus;
+
 import ai.libs.jaicore.basic.kvstore.KVStore;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.Pair;
@@ -42,42 +44,23 @@ import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import tpami.safeguard.api.IEvaluationTimeCalibrationModule;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.bayes.BayesNet;
-import weka.classifiers.bayes.NaiveBayes;
-import weka.classifiers.bayes.NaiveBayesMultinomial;
-import weka.classifiers.functions.MultilayerPerceptron;
-import weka.classifiers.functions.SimpleLogistic;
-import weka.classifiers.lazy.IBk;
-import weka.classifiers.lazy.KStar;
-import weka.classifiers.rules.DecisionTable;
-import weka.classifiers.trees.DecisionStump;
-import weka.classifiers.trees.J48;
-import weka.classifiers.trees.REPTree;
-import weka.classifiers.trees.RandomForest;
-import weka.classifiers.trees.RandomTree;
 
 public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrationModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(EvaluationTimeCalibrationModule.class);
 	private static final IEvaluationTimeCalibrationModuleConfig CONFIG = ConfigFactory.create(IEvaluationTimeCalibrationModuleConfig.class);
 
-	private static final List<String> PREPROCESSORS = Arrays.asList("bf/cfssubseteval", "gsw/cfssubseteval", "correlationAS", "PCAAS", "ReliefAS", "GainRatioAS", "InfoGainAS", "SymmetricalUncertAS");
-
 	private final KVStoreCollection baselineData;
 
-	public void setNumCPUs(final int numCPUs) {
-		CONFIG.setProperty(IEvaluationTimeCalibrationModuleConfig.K_CPUS, numCPUs + "");
+	private EventBus eventBus = new EventBus();
+
+	@Override
+	public void registerListener(final Object listener) {
+		this.eventBus.register(listener);
 	}
 
-	public EvaluationTimeCalibrationModule(final Collection<String> openMLIDsToIgnore) throws IOException {
+	public EvaluationTimeCalibrationModule(KVStoreCollection baselineData) throws IOException {
 		// prepare baseline data
-		KVStoreCollection baselineData = DataBasedComponentPredictorUtil.readCSV(CONFIG.getBasicEvaluationRuntimeFile(), new HashMap<>());
-
-		// remove preprocessors from samples
-		Map<String, Collection<String>> removeCondition = new HashMap<>();
-		removeCondition.put("algorithm", PREPROCESSORS);
-		baselineData.removeAnyContained(removeCondition, true);
-
 		List<String> fitSizes = CONFIG.getCalibrationConfigFitSizes();
 		List<String> datasetIDs = CONFIG.getCalibrationConfigDatasetIDs();
 		switch (CONFIG.getCalibrationConfigMode()) {
@@ -90,7 +73,6 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 		}
 		case "pairWise": {
 			baselineData.stream().forEach(x -> x.put("pairWiseValue", x.getAsString("fitsize") + "#" + x.getAsString("openmlid")));
-
 			Map<String, Collection<String>> containsSelect = new HashMap<>();
 			Set<String> instancesToInclude = new HashSet<>();
 			if (fitSizes.size() != datasetIDs.size()) {
@@ -110,13 +92,19 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 		if (CONFIG.getEnableBaselineEvaluationTimeFilter()) {
 			String collectionID = baselineData.getCollectionID();
 			baselineData = new KVStoreCollection(baselineData.stream().filter(x -> {
+				if (!x.containsKey("fittime") || !x.containsKey("applicationtime") || x.getAsString("fittime").trim().equals("") || x.getAsString("applicationtime").trim().equals("")) {
+					return false;
+				}
+
 				int totalEvalTime = x.getAsInt("fittime") + x.getAsInt("applicationtime");
 
 				boolean result = true;
 				if (CONFIG.getMinBaselineEvaluationTime() != null) {
+					System.out.println("Filter samples by min baseline evalution time " + CONFIG.getMinBaselineEvaluationTime());
 					result = result && (totalEvalTime >= CONFIG.getMinBaselineEvaluationTime());
 				}
 				if (CONFIG.getMaxBaselineEvaluationTime() != null) {
+					System.out.println("Filter samples by max baseline evalution time " + CONFIG.getMaxBaselineEvaluationTime());
 					result = result && (totalEvalTime <= CONFIG.getMaxBaselineEvaluationTime());
 				}
 				return result;
@@ -125,7 +113,9 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 		}
 
 		this.baselineData = baselineData;
-		LOGGER.debug("Available samples for calibration: {}", this.baselineData.size());
+		double min = this.baselineData.stream().mapToDouble(x -> x.getAsDouble("fittime") + x.getAsDouble("applicationtime")).min().getAsDouble();
+		double max = this.baselineData.stream().mapToDouble(x -> x.getAsDouble("fittime") + x.getAsDouble("applicationtime")).max().getAsDouble();
+		LOGGER.debug("Available samples for calibration: {} with minimum eval time {} and maximum eval time {}", this.baselineData.size(), min, max);
 	}
 
 	@Override
@@ -146,99 +136,83 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 		List<IKVStore> evalList = Collections.synchronizedList(new ArrayList<>(samples.size()));
 
 		List<Callable<OptionalDouble>> runnables = new ArrayList<>(numberOfSamples);
-		samples.stream().map(x -> new Callable<OptionalDouble>() {
-			@Override
-			public OptionalDouble call() throws Exception {
-				if (x.getAsInt("fittime") == 0 && x.getAsInt("applicationtime") == 0) {
-					return OptionalDouble.empty();
-				}
-				List<String> skip = Arrays.asList("ReliefFAS", "cfssubseteval_bf");
-
-				if (skip.contains(x.getAsString("algorithm"))) {
-					return OptionalDouble.of(1.0);
-				}
-
-				Map<String, String> resolve = new HashMap<>();
-				resolve.put("sl", SimpleLogistic.class.getName());
-				resolve.put("naivebayes", NaiveBayes.class.getName());
-				resolve.put("decisionstump", DecisionStump.class.getName());
-				resolve.put("randomtree", RandomTree.class.getName());
-				resolve.put("reptree", REPTree.class.getName());
-				resolve.put("randomforest", RandomForest.class.getName());
-				resolve.put("naivebayesmultinomial", NaiveBayesMultinomial.class.getName());
-				resolve.put("j48", J48.class.getName());
-				resolve.put("kstar", KStar.class.getName());
-				resolve.put("multilayerperceptron", MultilayerPerceptron.class.getName());
-				resolve.put("bayesnet", BayesNet.class.getName());
-				resolve.put("ibk", IBk.class.getName());
-				resolve.put("decisiontable", DecisionTable.class.getName());
-
-				IWekaClassifier model;
-				if (resolve.containsKey(x.getAsString("algorithm"))) {
-					model = new WekaClassifier(AbstractClassifier.forName(resolve.get(x.getAsString("algorithm")), null));
-				} else {
-					model = new WekaClassifier(AbstractClassifier.forName(x.getAsString("algorithm"), null));
-				}
-
-				int openmlID = x.getAsInt("openmlid");
-				int fitSize = x.getAsInt("fitsize");
-				int totalSize = x.getAsInt("totalsize");
-				int evaluationTime = x.getAsInt("fittime") + x.getAsInt("applicationtime");
-
-				Dataset d = null;
-				lock.lock();
-				try {
-					d = datasetCache.computeIfAbsent(openmlID, t -> {
-						try {
-							return (Dataset) OpenMLDatasetReader.deserializeDataset(t);
-						} catch (DatasetDeserializationFailedException e) {
-							e.printStackTrace();
-						}
-						return null;
-					});
-				} finally {
-					lock.unlock();
-				}
-				if (d == null) {
-					throw new DatasetDeserializationFailedException();
-				}
-
-				if (d.getLabelAttribute() instanceof INumericAttribute) {
-					d = (Dataset) DatasetUtil.convertToClassificationDataset(d);
-				}
-
-				double trainPortion = fitSize * 1.0 / totalSize;
-				List<ILabeledDataset<?>> split = SplitterUtil.getLabelStratifiedTrainTestSplit(d, CONFIG.getSeed(), trainPortion);
-
-				long fitStart = System.currentTimeMillis();
-				model.fit(split.get(0));
-				long fitTime = Math.round((System.currentTimeMillis() - fitStart) * 1.0 / 1000);
-
-				long predictStart = System.currentTimeMillis();
-				model.predict(split.get(1));
-				long predictTime = Math.round((System.currentTimeMillis() - predictStart) * 1.0);
-
-				IKVStore store = new KVStore();
-				store.put("actual-fittime", fitTime);
-				store.put("actual-predict", predictTime);
-				store.put("actual-eval", fitTime + predictTime);
-
-				store.put("data-fittime", x.getAsInt("fittime"));
-				store.put("data-predict", x.getAsInt("applicationtime") * 1000);
-				store.put("data-eval", x.getAsInt("fittime") + x.getAsInt("applicationtime"));
-
-				store.put("data-fitsize", fitSize);
-				store.put("data-predictsize", totalSize - fitSize);
-				store.put("algorithm", x.getAsString("algorithm"));
-				evalList.add(store);
-
-				if (evaluationTime > 0) {
-					return OptionalDouble.of((double) (fitTime + predictTime) / evaluationTime);
-				} else {
-					return OptionalDouble.empty();
-				}
+		samples.stream().forEach(x -> {
+			if (DataBasedComponentPredictorUtil.isPreprocessor(x.getAsString("algorithm"))) {
+				return;
 			}
-		}).forEach(runnables::add);
+
+			runnables.add(new Callable<OptionalDouble>() {
+				@Override
+				public OptionalDouble call() throws Exception {
+					if (x.getAsInt("fittime") == 0 && x.getAsInt("applicationtime") == 0) {
+						return OptionalDouble.empty();
+					}
+					List<String> skip = Arrays.asList("ReliefFAS", "cfssubseteval_bf");
+					if (skip.contains(x.getAsString("algorithm"))) {
+						return OptionalDouble.of(1.0);
+					}
+
+					IWekaClassifier model = new WekaClassifier(AbstractClassifier.forName(DataBasedComponentPredictorUtil.mapID2Weka(x.getAsString("algorithm")), null));
+					int openmlID = x.getAsInt("openmlid");
+					int fitSize = x.getAsInt("fitsize");
+					int totalSize = x.getAsInt("totalsize");
+					int evaluationTime = x.getAsInt("fittime") + x.getAsInt("applicationtime");
+
+					Dataset d = null;
+					lock.lock();
+					try {
+						d = datasetCache.computeIfAbsent(openmlID, t -> {
+							try {
+								return (Dataset) OpenMLDatasetReader.deserializeDataset(t);
+							} catch (DatasetDeserializationFailedException e) {
+								e.printStackTrace();
+							}
+							return null;
+						});
+					} finally {
+						lock.unlock();
+					}
+					if (d == null) {
+						throw new DatasetDeserializationFailedException();
+					}
+
+					if (d.getLabelAttribute() instanceof INumericAttribute) {
+						d = (Dataset) DatasetUtil.convertToClassificationDataset(d);
+					}
+
+					double trainPortion = fitSize * 1.0 / totalSize;
+					List<ILabeledDataset<?>> split = SplitterUtil.getLabelStratifiedTrainTestSplit(d, CONFIG.getSeed(), trainPortion);
+
+					long fitStart = System.currentTimeMillis();
+					model.fit(split.get(0));
+					long fitTime = Math.round((System.currentTimeMillis() - fitStart) * 1.0 / 1000);
+
+					long predictStart = System.currentTimeMillis();
+					model.predict(split.get(1));
+					long predictTime = Math.round((System.currentTimeMillis() - predictStart) * 1.0);
+
+					IKVStore store = new KVStore();
+					store.put("actual-fittime", fitTime);
+					store.put("actual-predict", predictTime);
+					store.put("actual-eval", fitTime + predictTime);
+
+					store.put("data-fittime", x.getAsInt("fittime"));
+					store.put("data-predict", x.getAsInt("applicationtime") * 1000);
+					store.put("data-eval", x.getAsInt("fittime") + x.getAsInt("applicationtime"));
+
+					store.put("data-fitsize", fitSize);
+					store.put("data-predictsize", totalSize - fitSize);
+					store.put("algorithm", x.getAsString("algorithm"));
+					evalList.add(store);
+
+					if (evaluationTime > 0) {
+						return OptionalDouble.of((double) (fitTime + predictTime) / evaluationTime);
+					} else {
+						return OptionalDouble.empty();
+					}
+				}
+			});
+		});
 		LOGGER.debug("Created a list of {} tasks", runnables.size());
 
 		if (CONFIG.getNumCPUs() <= 1) {
@@ -276,6 +250,8 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 
 		}).forEach(System.out::println);
 
+		this.eventBus.post(new CalibrationConstantsDeterminedEvent(fitCalibrationConstant, predictCalibrationConstant));
+
 		return new Pair<>(fitCalibrationConstant, predictCalibrationConstant);
 	}
 
@@ -286,6 +262,10 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 		double productSum = IntStream.range(0, x.length).mapToDouble(i -> x[i] * y[i]).sum();
 		double squareSum = IntStream.range(0, x.length).mapToDouble(i -> Math.pow(x[i], 2)).sum();
 		return productSum / squareSum;
+	}
+
+	public void setNumCPUs(final int numCPUs) {
+		CONFIG.setProperty(IEvaluationTimeCalibrationModuleConfig.K_CPUS, numCPUs + "");
 	}
 
 }

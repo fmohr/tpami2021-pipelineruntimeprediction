@@ -7,7 +7,17 @@ import ai.libs.jaicore.basic.IOwnerBasedConfig;
 
 public interface ISimpleHierarchicalRFSafeGuardConfig extends IOwnerBasedConfig {
 
+	public static final String FILE_PATTERN_BASIC_DEF = "runtimes_%s_default.csv";
+	public static final String FILE_PATTERN_BASIC_PAR = "runtimes_%s_parametrized.csv";
+	public static final String FILE_PATTERN_PREPROCESSOR = "%s.csv";
+	public static final String FILE_PATTERN_METALEARNER = "metalearner_parametereffects_%s.csv";
+
 	public static final String K_CPUS = "cpus";
+
+	public static final String K_ENABLE_CALIBRATION = "build.calibration";
+	public static final String K_ENABLE_BASE_COMPONENTS = "build.base_components";
+	public static final String K_ENABLE_PREPROCESSOR_EFFECTS = "build.preprocesor_effects";
+	public static final String K_ENABLE_META_LEARNER_EFFECTS = "build.meta_learner";
 
 	@Key(K_CPUS)
 	@DefaultValue("4")
@@ -30,76 +40,45 @@ public interface ISimpleHierarchicalRFSafeGuardConfig extends IOwnerBasedConfig 
 	@DefaultValue("applicationsize")
 	public String getLabelForApplicationSize();
 
-	/* Configs for reading basic component datasets */
+	/* Configs for reading datasets */
+	@Key("data.runtime.base.dir")
+	@DefaultValue("data/runtime/")
+	public File getBasicComponentsForDefaultRuntimeDirectory();
+
+	@Key("data.transform.metalearner.dir")
+	@DefaultValue("data/transform/metalearner/")
+	public File getMetaLearnerTransformEffectDirectory();
+
+	@Key("data.transform.preprocessing.dir")
+	@DefaultValue("data/transform/preprocessing/")
+	public File getPreprocessorsForTransformEffectDirectory();
+
 	@Key("data.runtime.base")
 	@DefaultValue("bayesnet,decisionstump,decisiontable,ibk,j48,jrip,kstar,lmt,logistic,multilayerperceptron,naivebayes,naivebayesmultinomial,oner,randomforest,randomtree,reptree,simplelogistic,smo,votedperceptron,zeror,bestfirst_cfssubseteval,greedystepwise_cfssubseteval,ranker_correlationattributeeval,ranker_gainratioattributeeval,ranker_infogainattributeeval,ranker_onerattributeeval,ranker_principalcomponents,ranker_relieffattributeeval,ranker_symmetricaluncertattributeeval")
 	public List<String> getBasicComponentsForRuntime();
 
-	@Key("data.runtime.base.dir")
-	@DefaultValue("data2/runtime/")
-	public File getBasicComponentsForDefaultRuntimeDirectory();
-
-	@Key("data.runtime.base.filepattern.default")
-	@DefaultValue("runtimes_%s_default.csv")
-	public String getBasicComponentsForDefaultRuntimeFilePattern(final String name);
-
-	@Key("data.runtime.base.filepattern.default")
-	@DefaultValue("runtimes_%s_parametrized.csv")
-	public String getBasicComponentsForParamRuntimeFilePattern(final String name);
-
-	/* Configs for reading metalearner datasets */
 	@Key("data.transform.metalearner")
 	@DefaultValue("adaboostm1,bagging,logitboost,randomcommittee,randomsubspace")
 	public List<String> getMetaLearnerTransformEffect();
 
-	@Key("data.transform.metalearner.dir")
-	@DefaultValue("data2/transform/metalearner/")
-	public File getMetaLearnerTransformEffectDirectory();
-
-	@Key("data.transform.metalearner.filepattern")
-	@DefaultValue("metalearner_parametereffects_%s.csv")
-	public String getMetaLearnersForTransformEffectFilePattern(final String name);
-
-	/* Configs for reading preprocessor datasets */
 	@Key("data.transform.preprocessing")
 	@DefaultValue("bestfirst_cfssubseteval,greedystepwise_cfssubseteval,ranker_correlationattributeeval,ranker_gainratioattributeeval,ranker_infogainattributeeval,ranker_onerattributeeval,ranker_principalcomponents,ranker_relieffattributeeval,ranker_symmetricaluncertattributeeval")
 	public List<String> getPreprocessorsForTransformEffect();
 
-	@Key("data.transform.preprocessing.dir")
-	@DefaultValue("data2/transform/preprocessing/")
-	public File getPreprocessorsForTransformEffectDirectory();
-
-	@Key("data.transform.preprocessing.filepattern")
-	@DefaultValue("%s.csv")
-	public String getPreprocessorsForTransformEffectFilePattern(String name);
-
-	/* Dataset Files and Directories */
-	@Key("data.base.evalruntime")
-	@DefaultValue("python/data/runtimes_all_default_nooutliers.csv")
-	public File getBasicEvaluationRuntimeFile();
-
-	@Key("data.base.parameterized")
-	@DefaultValue("python/data/parameterized/")
-	public File getBasicParameterizedDirectory();
-
-	@Key("data.base.parameterized.filename_template")
-	@DefaultValue("runtimes_%s_parametrized_nooutliers.csv")
-	public String getParameterizedFileNameTemplate();
-
 	/* Flags which parts of the safe guard to build */
-	@Key("build.calibration")
+	@Key(K_ENABLE_CALIBRATION)
 	@DefaultValue("true")
 	public boolean getPerformCalibration();
 
-	@Key("build.base_components")
+	@Key(K_ENABLE_BASE_COMPONENTS)
 	@DefaultValue("true")
 	public boolean getBuildBaseComponents();
 
-	@Key("build.preprocesor_effects")
+	@Key(K_ENABLE_PREPROCESSOR_EFFECTS)
 	@DefaultValue("true")
 	public boolean getBuildPreprocessorEffects();
 
-	@Key("build.meta_learner")
+	@Key(K_ENABLE_META_LEARNER_EFFECTS)
 	@DefaultValue("true")
 	public boolean getBuildMetaLearnerComponents();
 

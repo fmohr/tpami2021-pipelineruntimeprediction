@@ -20,7 +20,7 @@ public interface IEvaluationTimeCalibrationModuleConfig extends IOwnerBasedConfi
 	public int getNumCPUs();
 
 	@Key("calibration.max_samples")
-	@DefaultValue("100")
+	@DefaultValue("500")
 	public int getMaxSamples();
 
 	@Key("calibration.seed")
@@ -44,11 +44,11 @@ public interface IEvaluationTimeCalibrationModuleConfig extends IOwnerBasedConfi
 	public String getCalibrationConfigMode();
 
 	@Key("calibration.config.fitSizes")
-	@DefaultValue("")
+	@DefaultValue("16,50,75,100,500")
 	public List<String> getCalibrationConfigFitSizes();
 
 	@Key("calibration.config.datasetIDs")
-	@DefaultValue("")
+	@DefaultValue("183,1457,40975,40927,31,4136,1481,41065,1501,181")
 	public List<String> getCalibrationConfigDatasetIDs();
 
 	/* Dataset Files and Directories */

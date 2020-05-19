@@ -19,9 +19,13 @@ import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
 import org.api4.java.ai.ml.core.evaluation.ISupervisedLearnerEvaluator;
 import org.api4.java.algorithm.Timeout;
+import org.api4.java.common.event.IEvent;
 import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
@@ -45,11 +49,6 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleHierarchicalRFSafeGuard.class);
 	private static final ISimpleHierarchicalRFSafeGuardConfig CONFIG = ConfigFactory.create(ISimpleHierarchicalRFSafeGuardConfig.class);
 
-	public static final String FILE_PATTERN_BASIC_DEF = "runtimes_%s_default.csv";
-	public static final String FILE_PATTERN_BASIC_PAR = "runtimes_%s_parametrized.csv";
-	public static final String FILE_PATTERN_PREPROCESSOR = "%s.csv";
-	public static final String FILE_PATTERN_METALEARNER = "metalearner_parametereffects_%s.csv";
-
 	private Lock lock = new ReentrantLock();
 
 	private Map<String, IBaseComponentEvaluationTimePredictor> componentRuntimePredictorMap = new HashMap<>();
@@ -59,15 +58,23 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	private final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark;
 	private final ILabeledDataset<?> train;
 	private final ILabeledDataset<?> test;
-	private final double inductionCalibrationFactor;
-	private final double inferenceCalibrationFactor;
+	private double inductionCalibrationFactor;
+	private double inferenceCalibrationFactor;
 	private final double benchmarkFactor;
 
-	public static void setNumCPUs(final int numCPUs) {
-		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_CPUS, numCPUs + "");
+	private final EventBus eventBus = new EventBus();
+
+	@Override
+	public void registerListener(final Object listener) {
+		this.eventBus.register(listener);
 	}
 
-	private static void rescaleApplicationTime(final KVStoreCollection col) {
+	@Subscribe
+	public void forwardEvents(final IEvent e) {
+		this.eventBus.post(e);
+	}
+
+	private static void rescaleApplicationTime(final KVStoreCollection col) throws Exception {
 		for (IKVStore store : col) {
 			try {
 				if (!store.getAsString(CONFIG.getLabelForApplicationTime()).trim().isEmpty()) {
@@ -75,9 +82,8 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 							store.getAsDouble(CONFIG.getLabelForApplicationTime()) / store.getAsDouble(CONFIG.getLabelForApplicationSize()) * BaseComponentEvaluationTimePredictor.SCALE_FOR_NUM_PREDICTIONS);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println(store);
-				System.exit(0);
+				LOGGER.error("Could not rescale application time of store {}. Therefore, shutdown the process", e);
+				throw e;
 			}
 		}
 	}
@@ -88,28 +94,11 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		this.train = train;
 		this.test = test;
 
-		// Start calibration
-		if (CONFIG.getPerformCalibration()) {
-			Pair<Double, Double> calibrationFactors = new EvaluationTimeCalibrationModule(Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList())).getSystemCalibrationFactor();
-			this.inductionCalibrationFactor = calibrationFactors.getX();
-			this.inferenceCalibrationFactor = calibrationFactors.getY();
-		} else {
-			this.inductionCalibrationFactor = 1.0;
-			this.inferenceCalibrationFactor = 0.05;
-		}
-		System.err.println("Calibration factors: " + this.inductionCalibrationFactor + " / " + this.inferenceCalibrationFactor);
-
-		// Extract benchmark factor
-		if (benchmark instanceof MonteCarloCrossValidationEvaluator) {
-			this.benchmarkFactor = ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats();
-		} else {
-			this.benchmarkFactor = 1.0;
-		}
-		System.err.println("Benchmark factor: " + this.benchmarkFactor);
-
 		// Clean from excluded openml ids
 		Map<String, Collection<String>> cleanTrainingData = new HashMap<>();
 		cleanTrainingData.put(CONFIG.getLabelForDatasetID(), Arrays.stream(excludeOpenMLDatasets).mapToObj(x -> x + "").collect(Collectors.toList()));
+
+		KVStoreCollection defaultTrainingData = new KVStoreCollection();
 
 		List<Runnable> runnables = new ArrayList<>();
 		// Build component predictors
@@ -125,25 +114,25 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				runnables.add(new Runnable() {
 					@Override
 					public void run() {
-
 						try {
 							// read dataset for default parameterization
-							File defaultDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(FILE_PATTERN_BASIC_DEF, name));
+							File defaultDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_BASIC_DEF, name));
 							long start = System.currentTimeMillis();
 							KVStoreCollection defaultCol = DataBasedComponentPredictorUtil.readCSV(defaultDatasetFile, new HashMap<>());
-							System.out.println("File read for " + defaultDatasetFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+							LOGGER.info("File read for {} required {}s", defaultDatasetFile, ((double) (System.currentTimeMillis() - start) / 1000));
 							// read dataset for parameterized data points
-							File paramDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(FILE_PATTERN_BASIC_PAR, name));
+							File paramDatasetFile = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_BASIC_PAR, name));
 							KVStoreCollection paramCol = null;
 							if (paramDatasetFile.exists()) {
 								start = System.currentTimeMillis();
 								paramCol = DataBasedComponentPredictorUtil.readCSV(paramDatasetFile, new HashMap<>());
-								System.out.println("File read of " + paramDatasetFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+								LOGGER.info("File read for {} required {}s", paramDatasetFile, ((double) (System.currentTimeMillis() - start) / 1000));
 							}
 
 							// clean from excluded dataset ids
 							// rescale application times
 							defaultCol.removeAnyContained(cleanTrainingData, true);
+							KVStoreCollection calibrationData = new KVStoreCollection(defaultCol.toString());
 							rescaleApplicationTime(defaultCol);
 							if (paramCol != null) {
 								paramCol.removeAnyContained(cleanTrainingData, true);
@@ -161,6 +150,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 							SimpleHierarchicalRFSafeGuard.this.lock.lock();
 							try {
 								SimpleHierarchicalRFSafeGuard.this.componentRuntimePredictorMap.put(DataBasedComponentPredictorUtil.mapID2Weka(name), pred);
+								defaultTrainingData.addAll(calibrationData);
 							} finally {
 								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
 							}
@@ -178,19 +168,18 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			CONFIG.getPreprocessorsForTransformEffect().stream().forEach(name -> {
 				// Speed up of build phase for preprocessing effects (just for testing purposes)
 				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(name)) {
-					LOGGER.info("Skip building preprocessor transform effect model for " + name);
+					LOGGER.info("Skip building preprocessor transform effect model for {}", name);
 					return;
 				}
 				runnables.add(new Runnable() {
 					@Override
 					public void run() {
-
 						try {
 							// Read in dataset for learning predictors of meta features transformation by preprocessors.
-							File ppTransformFile = new File(CONFIG.getPreprocessorsForTransformEffectDirectory(), String.format(FILE_PATTERN_PREPROCESSOR, name));
+							File ppTransformFile = new File(CONFIG.getPreprocessorsForTransformEffectDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_PREPROCESSOR, name));
 							long start = System.currentTimeMillis();
 							KVStoreCollection ppTransformData = DataBasedComponentPredictorUtil.readCSV(ppTransformFile, new HashMap<>());
-							System.out.println("File read of " + ppTransformFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+							LOGGER.info("File read for {} required {}s", ppTransformFile, ((double) (System.currentTimeMillis() - start) / 1000));
 
 							// Build predictor
 							PreprocessingEffectPredictor pred = new PreprocessingEffectPredictor(name, ppTransformData);
@@ -200,7 +189,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 							} finally {
 								SimpleHierarchicalRFSafeGuard.this.lock.unlock();
 							}
-							LOGGER.info("Done building preprocessor transform effect model for " + name);
+							LOGGER.info("Done building preprocessor transform effect model for {}.", name);
 						} catch (Exception e) {
 							LOGGER.warn("Could not build preprocessing transform predictor for {} due to exception", name, e);
 						}
@@ -214,20 +203,19 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			CONFIG.getMetaLearnerTransformEffect().stream().forEach(name -> {
 				// Speed up of build phase for meta learner effects (just for testing purposes)
 				if (CONFIG.debuggingTestPipelineOnly() && !CONFIG.debuggingTestPipelineComponents().contains(name)) {
-					LOGGER.info("Skip building meta learner transform effect model for " + name);
+					LOGGER.info("Skip building meta learner transform effect model for {}.", name);
 					return;
 				}
 
 				runnables.add(new Runnable() {
 					@Override
 					public void run() {
-
 						try {
 							// Read in dataset for fitting predictors of meta features transformation by meta learners.
-							File metaLearnerFile = new File(CONFIG.getMetaLearnerTransformEffectDirectory(), String.format(FILE_PATTERN_METALEARNER, name));
+							File metaLearnerFile = new File(CONFIG.getMetaLearnerTransformEffectDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_METALEARNER, name));
 							long start = System.currentTimeMillis();
 							KVStoreCollection metaLearnerData = DataBasedComponentPredictorUtil.readCSV(metaLearnerFile, new HashMap<>());
-							System.out.println("File read of " + metaLearnerFile + " required " + ((double) (System.currentTimeMillis() - start) / 1000) + "s");
+							LOGGER.info("File read for {} required {}s", metaLearnerFile, ((double) (System.currentTimeMillis() - start) / 1000));
 
 							// Build predictor
 							MetaLearnerEvaluationTimePredictor pred = new MetaLearnerEvaluationTimePredictor(name, metaLearnerData);
@@ -252,6 +240,34 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		pool.shutdown();
 		pool.awaitTermination(1, TimeUnit.HOURS);
 
+		// Start calibration
+		if (CONFIG.getPerformCalibration()) {
+			EvaluationTimeCalibrationModule calibrationModule = new EvaluationTimeCalibrationModule(defaultTrainingData);
+			calibrationModule.registerListener(this);
+			calibrationModule.setNumCPUs(CONFIG.getNumCPUs());
+			Pair<Double, Double> calibrationFactors = calibrationModule.getSystemCalibrationFactor();
+			this.inductionCalibrationFactor = calibrationFactors.getX();
+			this.inferenceCalibrationFactor = calibrationFactors.getY();
+			if (Double.isNaN(this.inductionCalibrationFactor)) {
+				this.inductionCalibrationFactor = 1.0;
+			}
+			if (Double.isNaN(this.inferenceCalibrationFactor)) {
+				this.inferenceCalibrationFactor = 0.05;
+			}
+		} else {
+			this.inductionCalibrationFactor = 1.0;
+			this.inferenceCalibrationFactor = 0.05;
+		}
+		LOGGER.info("Calibration factors: {} / {}", this.inductionCalibrationFactor, this.inferenceCalibrationFactor);
+
+		// Extract benchmark factor
+		if (benchmark instanceof MonteCarloCrossValidationEvaluator) {
+			this.benchmarkFactor = ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats();
+		} else {
+			this.benchmarkFactor = 1.0;
+		}
+		LOGGER.info("Benchmark factor: {}", this.benchmarkFactor);
+
 		LOGGER.info("Instantiated safe guard with basic component predictors for:\n{}", this.componentRuntimePredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with preprocessing effect predictors for:\n{}", this.preprocessingEffectPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with meta learning predictors for:\n{}", this.metaLearnerPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
@@ -259,7 +275,11 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
 	@Override
 	public boolean predictWillAdhereToTimeout(final ComponentInstance ci, final Timeout timeout) throws Exception {
-		return this.predictEvaluationTime(ci, this.train, this.test) * this.benchmarkFactor < timeout.seconds();
+		double inductionTime = this.predictInductionTime(ci, this.train);
+		double inferenceTime = this.predictInferenceTime(ci, this.train, this.test);
+		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INDUCTION_TIME, inductionTime + "");
+		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INFERENCE_TIME, inferenceTime + "");
+		return (inductionTime + inferenceTime) * this.benchmarkFactor < timeout.seconds();
 	}
 
 	public double predictInductionTime(final MLComponentInstanceWrapper ciw, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
@@ -390,4 +410,23 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		}
 	}
 
+	public static void setNumCPUs(final int numCPUs) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_CPUS, numCPUs + "");
+	}
+
+	public void setEnableCalibration(final boolean enableCalibration) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_ENABLE_CALIBRATION, enableCalibration + "");
+	}
+
+	public void setEnableBaseComponent(final boolean enableBaseComponent) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_ENABLE_BASE_COMPONENTS, enableBaseComponent + "");
+	}
+
+	public void setEnablePreprocessor(final boolean enablePreprocessor) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_ENABLE_PREPROCESSOR_EFFECTS, enablePreprocessor + "");
+	}
+
+	public void setEnableMetaLearner(final boolean enableMetaLearner) {
+		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_ENABLE_META_LEARNER_EFFECTS, enableMetaLearner + "");
+	}
 }

@@ -48,6 +48,7 @@ import ai.libs.mlplan.core.TimeTrackingLearnerWrapper;
 import ai.libs.mlplan.core.events.ClassifierFoundEvent;
 import ai.libs.mlplan.multiclass.wekamlplan.MLPlanWekaBuilder;
 import ai.libs.mlplan.safeguard.EvaluationSafeGuardFiredEvent;
+import tpami.safeguard.CalibrationConstantsDeterminedEvent;
 import tpami.safeguard.SimpleHierarchicalRFSafeGuardFactory;
 
 public class AutoMLExperimenter {
@@ -68,7 +69,6 @@ public class AutoMLExperimenter {
 
 	public static void main(final String[] args)
 			throws AlgorithmTimeoutedException, ExperimentDBInteractionFailedException, IllegalExperimentSetupException, ExperimentAlreadyExistsInDatabaseException, InterruptedException, AlgorithmExecutionCanceledException {
-
 		if (args.length > 0) {
 			switch (args[0]) {
 			case "create":
@@ -159,6 +159,10 @@ public class AutoMLExperimenter {
 							System.err.println("Dataset with name " + datasetName + " not contained in the excludeIDs map.");
 							safeguardFactory.withExcludeOpenMLDatasets(new int[] {});
 						}
+
+						System.out.println("Build SAFEGUARD!");
+						safeguardFactory.build();
+
 						builder.withSafeGuardFactory(safeguardFactory);
 					}
 					/* create objects for experiment */
@@ -169,7 +173,16 @@ public class AutoMLExperimenter {
 					mlplan.registerListener(new Object() {
 						@Subscribe
 						public void rcvClassifierFoundEvent(final ClassifierFoundEvent event) {
-							this.logCandidateEvaluation("success", event.getComponentDescription(), event.getInSampleError() + "");
+							TimeTrackingLearnerWrapper learner = null;
+							if (event.getSolutionCandidate() instanceof TimeTrackingLearnerWrapper) {
+								learner = (TimeTrackingLearnerWrapper) event.getSolutionCandidate();
+							}
+
+							Double actualFitTime = learner.getFitTimes().stream().mapToDouble(x -> x).average().getAsDouble();
+							Double actualPredictTime = learner.getBatchPredictionTimes().stream().mapToDouble(x -> x).average().getAsDouble();
+							Double predictedFitTime = learner.getPredictedInductionTime();
+							Double predictedPredictTime = learner.getPredictedInferenceTime();
+							this.logCandidateEvaluation("success", event.getComponentDescription(), event.getInSampleError() + "", actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
 						}
 
 						@Subscribe
@@ -180,19 +193,45 @@ public class AutoMLExperimenter {
 							}
 							if (learner != null) {
 								if (event.getReport().getException() instanceof LearnerExecutionInterruptedException) {
-									this.logCandidateEvaluation("timeout", learner.getComponentInstance(), event.getReport().toString());
+									LearnerExecutionInterruptedException e = ((LearnerExecutionInterruptedException) event.getReport().getException());
+
+									Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
+									Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
+									Double predictedFitTime = learner.getPredictedInductionTime();
+									Double predictedPredictTime = learner.getPredictedInferenceTime();
+
+									this.logCandidateEvaluation("timeout", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
 								} else if (event.getReport().getException() instanceof LearnerExecutionFailedException) {
-									this.logCandidateEvaluation("crashed", learner.getComponentInstance(), event.getReport().toString());
+									LearnerExecutionFailedException e = ((LearnerExecutionFailedException) event.getReport().getException());
+
+									Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
+									Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
+									Double predictedFitTime = learner.getPredictedInductionTime();
+									Double predictedPredictTime = learner.getPredictedInferenceTime();
+
+									this.logCandidateEvaluation("crashed", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
 								}
 							}
 						}
 
 						@Subscribe
-						public void rcvEvaluationSafeGuardFiredEvent(final EvaluationSafeGuardFiredEvent e) {
-							this.logCandidateEvaluation("safeguard", e.getComponentInstance(), "Prevented execution");
+						public void rcvCalibrationConstants(final CalibrationConstantsDeterminedEvent e) {
+							Map<String, Object> constants = new HashMap<>();
+							constants.put("c_induction", e.getCInduction());
+							constants.put("c_inference", e.getCInference());
+							processor.processResults(constants);
 						}
 
-						private void logCandidateEvaluation(final String status, final ComponentInstance ci, final String result) {
+						@Subscribe
+						public void rcvEvaluationSafeGuardFiredEvent(final EvaluationSafeGuardFiredEvent e) {
+							Double predictedFitTime = Double.parseDouble(e.getComponentInstance().getAnnotation("predictedInductionTime"));
+							Double predictedPredictTime = Double.parseDouble(e.getComponentInstance().getAnnotation("predictedPredictTime"));
+
+							this.logCandidateEvaluation("safeguard", e.getComponentInstance(), "Prevented execution", -1.0, -1.0, predictedFitTime, predictedPredictTime);
+						}
+
+						private void logCandidateEvaluation(final String status, final ComponentInstance ci, final String result, final Double actualFitTime, final Double actualPredictTime, final Double predictedFitTime,
+								final Double predictedPredictTime) {
 							try {
 								Map<String, Object> map = new HashMap<>();
 								map.put("status", status);

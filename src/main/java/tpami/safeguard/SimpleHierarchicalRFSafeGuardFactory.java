@@ -18,6 +18,8 @@ public class SimpleHierarchicalRFSafeGuardFactory implements IEvaluationSafeGuar
 	private ILabeledDataset<?> train;
 	private ILabeledDataset<?> test;
 
+	private SimpleHierarchicalRFSafeGuard builtSafeGuard = null;
+
 	public SimpleHierarchicalRFSafeGuardFactory() {
 		// intentionally left blank
 	}
@@ -56,7 +58,10 @@ public class SimpleHierarchicalRFSafeGuardFactory implements IEvaluationSafeGuar
 
 	@Override
 	public SimpleHierarchicalRFSafeGuard build() throws Exception {
-		return new SimpleHierarchicalRFSafeGuard(this.excludeOpenMLDatasets, this.evaluator, this.train, this.test);
+		if (this.builtSafeGuard == null) {
+			this.builtSafeGuard = new SimpleHierarchicalRFSafeGuard(this.excludeOpenMLDatasets, this.evaluator, this.train, this.test);
+		}
+		return this.builtSafeGuard;
 	}
 
 	public void setNumCPUs(final int numCPUs) {

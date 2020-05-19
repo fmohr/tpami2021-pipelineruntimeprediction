@@ -84,9 +84,9 @@ public class BasicComponentPredictorTest {
 	private KVStoreCollection getData(final String learner, final boolean defaultParams) throws IOException {
 		File file = null;
 		if (defaultParams) {
-			file = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(SimpleHierarchicalRFSafeGuard.FILE_PATTERN_BASIC_DEF, learner));
+			file = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_BASIC_DEF, learner));
 		} else {
-			file = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(SimpleHierarchicalRFSafeGuard.FILE_PATTERN_BASIC_PAR, learner));
+			file = new File(CONFIG.getBasicComponentsForDefaultRuntimeDirectory(), String.format(ISimpleHierarchicalRFSafeGuardConfig.FILE_PATTERN_BASIC_PAR, learner));
 		}
 		try {
 			return DataBasedComponentPredictorUtil.readCSV(file, new HashMap<>());

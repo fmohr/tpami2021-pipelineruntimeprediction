@@ -6,4 +6,6 @@ public interface IEvaluationTimeCalibrationModule {
 
 	public Pair<Double, Double> getSystemCalibrationFactor() throws Exception;
 
+	public void registerListener(Object listener);
+
 }

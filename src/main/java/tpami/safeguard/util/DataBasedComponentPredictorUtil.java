@@ -3,9 +3,11 @@ package tpami.safeguard.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -15,6 +17,7 @@ import org.api4.java.datastructure.kvstore.IKVStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ai.libs.hasco.model.Component;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.kvstore.KVStoreUtil;
@@ -61,6 +64,13 @@ public class DataBasedComponentPredictorUtil {
 	private static final Map<String, String> ID2WekaMap = new HashMap<>();
 	private static final Map<String, String> Weka2IDMap = new HashMap<>();
 	private static Set<String> alreadyWarned = new HashSet<>();
+
+	public static Component getComponentForID(final String id) {
+		return null;
+	}
+
+	public static final List<String> PREPROCESSORS = Arrays.asList("bestfirst_cfssubseteval", "greedystepwise_cfssubseteval", "ranker_correlationattributeeval", "ranker_gainratioattributeeval", "ranker_infogainattributeeval",
+			"ranker_onerattributeeval", "ranker_principalcomponents", "ranker_relieffattributeeval", "ranker_symmetricaluncertattributeeval");
 
 	public static String componentInstanceToPreprocessorID(final ComponentInstance ci) {
 		ComponentInstance searcher = ci.getSatisfactionOfRequiredInterfaces().get("search");
@@ -128,10 +138,11 @@ public class DataBasedComponentPredictorUtil {
 	public static KVStoreCollection readCSV(final File csvFile, final Map<String, String> commonFields) throws IOException {
 		alreadyWarned.clear();
 		if (!csvFile.exists()) {
-			throw new IllegalArgumentException("CSV file does not exist.");
+			throw new IllegalArgumentException("CSV file " + csvFile + " does not exist.");
 		}
 
 		KVStoreCollection col = KVStoreUtil.readFromCSVWithHeader(csvFile, commonFields, ",");
+		col.setCollectionID(csvFile.getName());
 		return col;
 	}
 
@@ -235,6 +246,10 @@ public class DataBasedComponentPredictorUtil {
 		sb.append(containedModels.entrySet().stream().map(x -> x.getKey() + ":" + (x.getValue() != null)).collect(Collectors.joining(",")));
 		sb.append("]");
 		return sb.toString();
+	}
+
+	public static boolean isPreprocessor(final String asString) {
+		return false;
 	}
 
 }
