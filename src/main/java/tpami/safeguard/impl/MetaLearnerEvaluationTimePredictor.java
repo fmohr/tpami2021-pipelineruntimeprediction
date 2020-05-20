@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import ai.libs.hasco.model.CategoricalParameterDomain;
@@ -119,6 +120,9 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 
 	@Override
 	public double predictInductionTime(final MLComponentInstanceWrapper ciw, final IBaseComponentEvaluationTimePredictor baseLearnerEvaluationTimePredictor, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
+		Objects.requireNonNull(baseLearnerEvaluationTimePredictor, "Baselearner evaluation time predictor must not be null.");
+		Objects.requireNonNull(ciw.getBaseLearner(), "Base learner must not be null.");
+
 		Instance instance = this.toInstance(ciw, metaFeaturesTrain);
 
 		double k = this.numBaseLearnerBuilds.classifyInstance(instance);

@@ -32,6 +32,9 @@ public class ComponentInstanceAdapter {
 	}
 
 	public String componentInstanceToString(final ComponentInstance ci) throws JsonProcessingException {
+		if (ci == null) {
+			return "null";
+		}
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.writeValueAsString(this.componentInstanceToMap(ci));
 	}

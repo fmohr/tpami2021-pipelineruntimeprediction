@@ -43,11 +43,15 @@ import ai.libs.jaicore.ml.core.evaluation.evaluator.SupervisedLearnerExecutor;
 import ai.libs.jaicore.ml.core.evaluation.evaluator.events.TrainTestSplitEvaluationFailedEvent;
 import ai.libs.jaicore.ml.core.filter.SplitterUtil;
 import ai.libs.jaicore.ml.weka.classification.learner.IWekaClassifier;
+import ai.libs.mlplan.core.ITimeTrackingLearner;
 import ai.libs.mlplan.core.MLPlan;
 import ai.libs.mlplan.core.TimeTrackingLearnerWrapper;
-import ai.libs.mlplan.core.events.ClassifierFoundEvent;
+import ai.libs.mlplan.core.events.TimeTrackingLearnerEvaluationEvent;
 import ai.libs.mlplan.multiclass.wekamlplan.MLPlanWekaBuilder;
+import ai.libs.mlplan.safeguard.AlwaysEvaluateSafeGuardFactory;
+import ai.libs.mlplan.safeguard.AlwaysPreventSafeGuardFactory;
 import ai.libs.mlplan.safeguard.EvaluationSafeGuardFiredEvent;
+import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
 import tpami.safeguard.CalibrationConstantsDeterminedEvent;
 import tpami.safeguard.SimpleHierarchicalRFSafeGuardFactory;
 
@@ -62,6 +66,12 @@ public class AutoMLExperimenter {
 	private static final IExperimentDatabaseHandle dbHandle = new ExperimenterMySQLHandle(dbconfig);
 
 	private static SQLAdapter adapter = new SQLAdapter(dbconfig);
+
+	enum ESafeGuardType {
+		ALWAYS_EVAL, ALWAYS_PREVENT, HIERARCHICAL;
+	}
+
+	private static final ESafeGuardType SAFEGUARD_TYPE = ESafeGuardType.HIERARCHICAL;
 
 	public AutoMLExperimenter() {
 		// TODO Auto-generated constructor stub
@@ -145,25 +155,35 @@ public class AutoMLExperimenter {
 					/* get experiment setup */
 
 					MLPlanWekaBuilder builder = new MLPlanWekaBuilder();
+					builder.withNumCpus(experimentEntry.getExperiment().getNumCPUs());
 					builder.withTimeOut(new Timeout(totalTimeoutInS, TimeUnit.SECONDS));
 					builder.withNodeEvaluationTimeOut(new Timeout(evaluationTimeoutInS * 3, TimeUnit.SECONDS));
 					builder.withCandidateEvaluationTimeOut(new Timeout(evaluationTimeoutInS, TimeUnit.SECONDS));
 					builder.withDataset(trainTestSplit.get(0));
 
 					if (algorithmMode.equals("safeguard")) {
-						SimpleHierarchicalRFSafeGuardFactory safeguardFactory = new SimpleHierarchicalRFSafeGuardFactory();
-						safeguardFactory.setNumCPUs(experimentEntry.getExperiment().getNumCPUs());
-						if (excludeIDs.containsKey(datasetName)) {
-							safeguardFactory.withExcludeOpenMLDatasets(excludeIDs.get(datasetName));
-						} else {
-							System.err.println("Dataset with name " + datasetName + " not contained in the excludeIDs map.");
-							safeguardFactory.withExcludeOpenMLDatasets(new int[] {});
+						switch (SAFEGUARD_TYPE) {
+						case ALWAYS_EVAL:
+							builder.withSafeGuardFactory(new AlwaysEvaluateSafeGuardFactory());
+							break;
+						case ALWAYS_PREVENT:
+							builder.withSafeGuardFactory(new AlwaysPreventSafeGuardFactory());
+							break;
+						case HIERARCHICAL:
+							SimpleHierarchicalRFSafeGuardFactory safeguardFactory = new SimpleHierarchicalRFSafeGuardFactory();
+							safeguardFactory.setNumCPUs(experimentEntry.getExperiment().getNumCPUs());
+							if (excludeIDs.containsKey(datasetName)) {
+								safeguardFactory.withExcludeOpenMLDatasets(excludeIDs.get(datasetName));
+							} else {
+								System.err.println("Dataset with name " + datasetName + " not contained in the excludeIDs map.");
+								safeguardFactory.withExcludeOpenMLDatasets(new int[] {});
+							}
+
+							safeguardFactory.build();
+							builder.withSafeGuardFactory(safeguardFactory);
+							break;
 						}
 
-						System.out.println("Build SAFEGUARD!");
-						safeguardFactory.build();
-
-						builder.withSafeGuardFactory(safeguardFactory);
 					}
 					/* create objects for experiment */
 //					logger.info("Evaluate {} for dataset {} and seed {}", algorithmMode, datasetName, seed);
@@ -172,45 +192,52 @@ public class AutoMLExperimenter {
 					mlplan.setLoggerName("mlplan");
 					mlplan.registerListener(new Object() {
 						@Subscribe
-						public void rcvClassifierFoundEvent(final ClassifierFoundEvent event) {
-							TimeTrackingLearnerWrapper learner = null;
-							if (event.getSolutionCandidate() instanceof TimeTrackingLearnerWrapper) {
-								learner = (TimeTrackingLearnerWrapper) event.getSolutionCandidate();
-							}
-
-							Double actualFitTime = learner.getFitTimes().stream().mapToDouble(x -> x).average().getAsDouble();
-							Double actualPredictTime = learner.getBatchPredictionTimes().stream().mapToDouble(x -> x).average().getAsDouble();
-							Double predictedFitTime = learner.getPredictedInductionTime();
-							Double predictedPredictTime = learner.getPredictedInferenceTime();
-							this.logCandidateEvaluation("success", event.getComponentDescription(), event.getInSampleError() + "", actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
+						public void rcvClassifierFoundEvent(final TimeTrackingLearnerEvaluationEvent event) {
+							this.logCandidateEvaluation("success", event.getComponentInstance(), event.getScore() + "", event.getActualFitTime(), event.getActualPredictTime(), event.getPredictedFitTime(), event.getPredictedPredictTime());
 						}
 
 						@Subscribe
 						public void rcvTrainTestSplitEvaluationFailedEvent(final TrainTestSplitEvaluationFailedEvent<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> event) {
-							TimeTrackingLearnerWrapper learner = null;
-							if (event.getLearner() instanceof TimeTrackingLearnerWrapper) {
-								learner = (TimeTrackingLearnerWrapper) event.getLearner();
-							}
-							if (learner != null) {
-								if (event.getReport().getException() instanceof LearnerExecutionInterruptedException) {
-									LearnerExecutionInterruptedException e = ((LearnerExecutionInterruptedException) event.getReport().getException());
+							try {
 
-									Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
-									Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
-									Double predictedFitTime = learner.getPredictedInductionTime();
-									Double predictedPredictTime = learner.getPredictedInferenceTime();
-
-									this.logCandidateEvaluation("timeout", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
-								} else if (event.getReport().getException() instanceof LearnerExecutionFailedException) {
-									LearnerExecutionFailedException e = ((LearnerExecutionFailedException) event.getReport().getException());
-
-									Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
-									Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
-									Double predictedFitTime = learner.getPredictedInductionTime();
-									Double predictedPredictTime = learner.getPredictedInferenceTime();
-
-									this.logCandidateEvaluation("crashed", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
+								TimeTrackingLearnerWrapper learner = null;
+								if (event.getLearner() instanceof ITimeTrackingLearner) {
+									learner = (TimeTrackingLearnerWrapper) event.getLearner();
 								}
+								if (learner != null) {
+									if (event.getReport().getException() instanceof LearnerExecutionInterruptedException) {
+										LearnerExecutionInterruptedException e = ((LearnerExecutionInterruptedException) event.getReport().getException());
+
+										Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
+										Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
+										Double predictedFitTime = learner.getPredictedInductionTime();
+										Double predictedPredictTime = learner.getPredictedInferenceTime();
+
+										this.logCandidateEvaluation("timeout", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
+									} else if (event.getReport().getException() instanceof LearnerExecutionFailedException) {
+										LearnerExecutionFailedException e = ((LearnerExecutionFailedException) event.getReport().getException());
+
+										Double actualFitTime = (double) (e.getTrainTimeEnd() - e.getTrainTimeStart()) / 1000;
+										Double actualPredictTime = (double) (e.getTestTimeEnd() - e.getTestTimeStart()) / 1000;
+										Double predictedFitTime = learner.getPredictedInductionTime();
+										Double predictedPredictTime = learner.getPredictedInferenceTime();
+
+										this.logCandidateEvaluation("crashed", learner.getComponentInstance(), event.getReport().toString(), actualFitTime, actualPredictTime, predictedFitTime, predictedPredictTime);
+									}
+								} else {
+									if (event.getReport().getException() instanceof LearnerExecutionInterruptedException) {
+										LearnerExecutionInterruptedException e = ((LearnerExecutionInterruptedException) event.getReport().getException());
+
+										this.logCandidateEvaluation("timeout", null, event.getReport().toString(), -1.0, -1.0, -1.0, -1.0);
+									} else if (event.getReport().getException() instanceof LearnerExecutionFailedException) {
+										LearnerExecutionFailedException e = ((LearnerExecutionFailedException) event.getReport().getException());
+
+										this.logCandidateEvaluation("crashed", null, event.getReport().toString(), -1.0, -1.0, -1.0, -1.0);
+									}
+
+								}
+							} catch (Throwable e) {
+								e.printStackTrace();
 							}
 						}
 
@@ -224,9 +251,8 @@ public class AutoMLExperimenter {
 
 						@Subscribe
 						public void rcvEvaluationSafeGuardFiredEvent(final EvaluationSafeGuardFiredEvent e) {
-							Double predictedFitTime = Double.parseDouble(e.getComponentInstance().getAnnotation("predictedInductionTime"));
-							Double predictedPredictTime = Double.parseDouble(e.getComponentInstance().getAnnotation("predictedPredictTime"));
-
+							Double predictedFitTime = Double.parseDouble(e.getComponentInstance().getAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INDUCTION_TIME));
+							Double predictedPredictTime = Double.parseDouble(e.getComponentInstance().getAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INFERENCE_TIME));
 							this.logCandidateEvaluation("safeguard", e.getComponentInstance(), "Prevented execution", -1.0, -1.0, predictedFitTime, predictedPredictTime);
 						}
 
@@ -237,11 +263,16 @@ public class AutoMLExperimenter {
 								map.put("status", status);
 								map.put("component_instance", new ComponentInstanceAdapter().componentInstanceToString(ci));
 								map.put("result", result);
+								map.put("actualFitTime", actualFitTime);
+								map.put("actualPredictTime", actualPredictTime);
+								map.put("predictedFitTime", predictedFitTime);
+								map.put("predictedPredictTime", predictedPredictTime);
 								map.put("thread", Thread.currentThread().getName());
 								map.put("experiment_id", experimentEntry.getId());
 								map.put("timestamp_found", System.currentTimeMillis());
 
 								new KVStore(map);
+								System.out.println("INSERT " + m.getEvalTable() + " " + map);
 								adapter.insert(m.getEvalTable(), map);
 							} catch (JsonProcessingException e) {
 								e.printStackTrace();

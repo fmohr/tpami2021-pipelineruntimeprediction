@@ -55,12 +55,12 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	private Map<String, IMetaFeatureTransformationPredictor> preprocessingEffectPredictorMap = new HashMap<>();
 	private Map<String, IMetaLearnerEvaluationTimePredictor> metaLearnerPredictorMap = new HashMap<>();
 
-	private final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark;
-	private final ILabeledDataset<?> train;
-	private final ILabeledDataset<?> test;
+	private ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark;
+	private ILabeledDataset<?> train;
+	private ILabeledDataset<?> test;
 	private double inductionCalibrationFactor;
 	private double inferenceCalibrationFactor;
-	private final double benchmarkFactor;
+	private double benchmarkFactor = 5.0;
 
 	private final EventBus eventBus = new EventBus();
 
@@ -245,6 +245,7 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 			EvaluationTimeCalibrationModule calibrationModule = new EvaluationTimeCalibrationModule(defaultTrainingData);
 			calibrationModule.registerListener(this);
 			calibrationModule.setNumCPUs(CONFIG.getNumCPUs());
+
 			Pair<Double, Double> calibrationFactors = calibrationModule.getSystemCalibrationFactor();
 			this.inductionCalibrationFactor = calibrationFactors.getX();
 			this.inferenceCalibrationFactor = calibrationFactors.getY();
@@ -252,29 +253,39 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				this.inductionCalibrationFactor = 1.0;
 			}
 			if (Double.isNaN(this.inferenceCalibrationFactor)) {
-				this.inferenceCalibrationFactor = 0.05;
+				this.inferenceCalibrationFactor = 0.2;
 			}
+
+			this.eventBus.post(new CalibrationConstantsDeterminedEvent(this.inductionCalibrationFactor, this.inferenceCalibrationFactor));
 		} else {
 			this.inductionCalibrationFactor = 1.0;
-			this.inferenceCalibrationFactor = 0.05;
+			this.inferenceCalibrationFactor = 0.2;
+			this.eventBus.post(new CalibrationConstantsDeterminedEvent(this.inductionCalibrationFactor, this.inferenceCalibrationFactor));
 		}
 		LOGGER.info("Calibration factors: {} / {}", this.inductionCalibrationFactor, this.inferenceCalibrationFactor);
 
-		// Extract benchmark factor
-		if (benchmark instanceof MonteCarloCrossValidationEvaluator) {
-			this.benchmarkFactor = ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats();
-		} else {
-			this.benchmarkFactor = 1.0;
-		}
-		LOGGER.info("Benchmark factor: {}", this.benchmarkFactor);
+		this.setBenchmark(benchmark);
 
 		LOGGER.info("Instantiated safe guard with basic component predictors for:\n{}", this.componentRuntimePredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with preprocessing effect predictors for:\n{}", this.preprocessingEffectPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 		LOGGER.info("Instantiated safe guard with meta learning predictors for:\n{}", this.metaLearnerPredictorMap.keySet().stream().collect(Collectors.joining("\n")));
 	}
 
+	public void setTrainDataset(final ILabeledDataset<?> dataset) {
+		System.out.println("SET Training Data");
+		this.train = dataset;
+	}
+
+	public void setTestDataset(final ILabeledDataset<?> dataset) {
+		System.out.println("Set Test Data");
+		this.test = dataset;
+	}
+
 	@Override
 	public boolean predictWillAdhereToTimeout(final ComponentInstance ci, final Timeout timeout) throws Exception {
+		System.out.println("Train null? " + (this.train == null) + " Test null? " + (this.test == null));
+		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INDUCTION_TIME, "-1.0");
+		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INFERENCE_TIME, "-1.0");
 		double inductionTime = this.predictInductionTime(ci, this.train);
 		double inferenceTime = this.predictInferenceTime(ci, this.train, this.test);
 		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INDUCTION_TIME, inductionTime + "");
@@ -324,7 +335,8 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				return 0.0;
 			}
 		} else if (ciw.isBaseLearner()) {
-			return this.componentRuntimePredictorMap.get(ciw.getComponent().getName()).predictInductionTime(ciw, metaFeaturesTrain);
+			String baselearnerName = ciw.getComponent().getName();
+			return this.componentRuntimePredictorMap.get(baselearnerName).predictInductionTime(ciw, metaFeaturesTrain);
 		} else {
 			LOGGER.warn("Case not covered. This component instance {} seems to be neither pipeline nor meta learner nor base learner. Therefore we return 0 as time which might be overly enthusiastic.", ciw);
 			return 0.0;
@@ -381,7 +393,8 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 				return 0.0;
 			}
 		} else if (ciw.isBaseLearner()) {
-			return this.componentRuntimePredictorMap.get(ciw.getComponent().getName()).predictInferenceTime(ciw, metaFeaturesTrain, metaFeaturesTest);
+			String baselearnerName = ciw.getComponent().getName();
+			return this.componentRuntimePredictorMap.get(baselearnerName).predictInferenceTime(ciw, metaFeaturesTrain, metaFeaturesTest);
 		} else {
 			LOGGER.warn("Case not covered. This component instance {} seems to be neither pipeline nor meta learner nor base learner. Therefore we return 0 as time which might be overly enthusiastic.", ciw);
 			return 0.0;
@@ -406,7 +419,8 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 		if (ciw.isBaseLearner()) {
 			IBaseComponentEvaluationTimePredictor pred = this.componentRuntimePredictorMap.get(ciw.getComponent().getName());
 			pred.setActualDefaultConfigurationInductionTime(new MetaFeatureContainer(this.train), wrappedLearner.getFitTimes().stream().mapToDouble(x -> (double) x).average().getAsDouble());
-			pred.setActualDefaultConfigurationInferenceTime(new MetaFeatureContainer(this.train), new MetaFeatureContainer(this.test), wrappedLearner.getBatchPredictionTimes().stream().mapToDouble(x -> (double) x).average().getAsDouble());
+			pred.setActualDefaultConfigurationInferenceTime(new MetaFeatureContainer(this.train), new MetaFeatureContainer(this.test),
+					wrappedLearner.getBatchPredictionTimesInMS().stream().mapToDouble(x -> (double) x).average().getAsDouble());
 		}
 	}
 
@@ -428,5 +442,17 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 
 	public void setEnableMetaLearner(final boolean enableMetaLearner) {
 		CONFIG.setProperty(ISimpleHierarchicalRFSafeGuardConfig.K_ENABLE_META_LEARNER_EFFECTS, enableMetaLearner + "");
+	}
+
+	public void setBenchmark(final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> benchmark) {
+		this.benchmark = benchmark;
+		// Extract benchmark factor
+		if (benchmark instanceof MonteCarloCrossValidationEvaluator) {
+			System.out.println("MCCV with " + ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats());
+			this.benchmarkFactor = ((MonteCarloCrossValidationEvaluator) benchmark).getRepeats();
+		} else {
+			this.benchmarkFactor = 5.0;
+		}
+		LOGGER.info("Benchmark factor: {}", this.benchmarkFactor);
 	}
 }

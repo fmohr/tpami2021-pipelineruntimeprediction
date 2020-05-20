@@ -27,13 +27,17 @@ public class SimpleHierarchicalRFSafeGuardFactory implements IEvaluationSafeGuar
 	@Override
 	public SimpleHierarchicalRFSafeGuardFactory withEvaluator(final ISupervisedLearnerEvaluator<ILabeledInstance, ILabeledDataset<? extends ILabeledInstance>> evaluator) {
 		this.evaluator = evaluator;
+		if (this.builtSafeGuard != null) {
+			this.builtSafeGuard.setBenchmark(evaluator);
+		}
+
 		if (this.evaluator instanceof MonteCarloCrossValidationEvaluator) {
 			MonteCarloCrossValidationEvaluator mccv = (MonteCarloCrossValidationEvaluator) this.evaluator;
 			try {
 				IDatasetSplitSet<ILabeledDataset<?>> splitSet = mccv.getSplitGenerator().nextSplitSet();
 				List<ILabeledDataset<?>> split = splitSet.getFolds(0);
-				this.train = split.get(0);
-				this.test = split.get(1);
+				this.withTrainingDataSet(split.get(0));
+				this.withTestDataSet(split.get(1));
 			} catch (InterruptedException | SplitFailedException e) {
 				e.printStackTrace();
 			}
@@ -43,11 +47,17 @@ public class SimpleHierarchicalRFSafeGuardFactory implements IEvaluationSafeGuar
 
 	public SimpleHierarchicalRFSafeGuardFactory withTrainingDataSet(final ILabeledDataset<?> train) {
 		this.train = train;
+		if (this.builtSafeGuard != null) {
+			this.builtSafeGuard.setTrainDataset(train);
+		}
 		return this;
 	}
 
 	public SimpleHierarchicalRFSafeGuardFactory withTestDataSet(final ILabeledDataset<?> test) {
 		this.test = test;
+		if (this.builtSafeGuard != null) {
+			this.builtSafeGuard.setTestDataset(test);
+		}
 		return this;
 	}
 

@@ -67,7 +67,7 @@ public interface ISimpleHierarchicalRFSafeGuardConfig extends IOwnerBasedConfig 
 
 	/* Flags which parts of the safe guard to build */
 	@Key(K_ENABLE_CALIBRATION)
-	@DefaultValue("true")
+	@DefaultValue("false")
 	public boolean getPerformCalibration();
 
 	@Key(K_ENABLE_BASE_COMPONENTS)

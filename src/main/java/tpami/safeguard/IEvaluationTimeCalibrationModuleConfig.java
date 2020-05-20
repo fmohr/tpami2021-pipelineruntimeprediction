@@ -32,11 +32,11 @@ public interface IEvaluationTimeCalibrationModuleConfig extends IOwnerBasedConfi
 	public boolean getEnableBaselineEvaluationTimeFilter();
 
 	@Key("calibration.evaltime_filter.min_baseline_time")
-	@DefaultValue("10")
+	@DefaultValue("1")
 	public Integer getMinBaselineEvaluationTime();
 
 	@Key("calibration.evaltime_filter.max_baseline_time")
-	@DefaultValue("300")
+	@DefaultValue("200")
 	public Integer getMaxBaselineEvaluationTime();
 
 	@Key("calibration.config.mode")

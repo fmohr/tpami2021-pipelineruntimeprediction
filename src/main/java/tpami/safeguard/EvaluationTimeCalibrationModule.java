@@ -100,11 +100,9 @@ public class EvaluationTimeCalibrationModule implements IEvaluationTimeCalibrati
 
 				boolean result = true;
 				if (CONFIG.getMinBaselineEvaluationTime() != null) {
-					System.out.println("Filter samples by min baseline evalution time " + CONFIG.getMinBaselineEvaluationTime());
 					result = result && (totalEvalTime >= CONFIG.getMinBaselineEvaluationTime());
 				}
 				if (CONFIG.getMaxBaselineEvaluationTime() != null) {
-					System.out.println("Filter samples by max baseline evalution time " + CONFIG.getMaxBaselineEvaluationTime());
 					result = result && (totalEvalTime <= CONFIG.getMaxBaselineEvaluationTime());
 				}
 				return result;

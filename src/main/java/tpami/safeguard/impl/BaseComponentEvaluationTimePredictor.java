@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
@@ -118,14 +119,17 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
 			if (this.actualInductionTimeCache.containsKey(metaFeaturesTrain)) {
+				ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-IndBLCache");
 				double inductionTime = this.actualInductionTimeCache.get(metaFeaturesTrain);
 				LOGGER.debug("Return induction time for base component {} from cache: {}.", this.componentName, inductionTime);
 				return inductionTime;
 			}
 			model = this.defaultInductionPredictor;
+			ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-IndBLDef");
 			i = this.toDefaultInstance(metaFeaturesTrain);
 		} else {
 			model = this.parameterizedInductionPredictor;
+			ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-IndBLParam");
 			i = this.toParameterizedInstance(metaFeaturesTrain, ci);
 		}
 		return model.classifyInstance(i);
@@ -137,14 +141,17 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 		Instance i;
 		if (ComponentUtil.isDefaultConfiguration(ci)) {
 			if (this.actualInferenceTimeCache.containsKey(metaFeaturesTrain)) {
+				ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-InfBLCache");
 				double inferenceTime = this.actualInferenceTimeCache.get(metaFeaturesTrain);
 				LOGGER.debug("Return inference time for base component {} from cache. {}.", this.componentName, inferenceTime);
 				return inferenceTime;
 			}
 			model = this.defaultInferencePredictor;
+			ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-InfBLDef");
 			i = this.toDefaultInstance(metaFeaturesTrain);
 		} else {
 			model = this.parameterizedInferencePredictor;
+			ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-InfBLParam");
 			i = this.toParameterizedInstance(metaFeaturesTrain, ci);
 		}
 		return model.classifyInstance(i);
