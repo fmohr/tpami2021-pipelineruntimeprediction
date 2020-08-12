@@ -2,7 +2,7 @@ package tpami.safeguard.api;
 
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import tpami.safeguard.impl.MetaFeatureContainer;
 
 /**

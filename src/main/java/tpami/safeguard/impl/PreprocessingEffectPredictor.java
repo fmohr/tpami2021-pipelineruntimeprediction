@@ -14,9 +14,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.SetUtil;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IMetaFeatureTransformationPredictor;

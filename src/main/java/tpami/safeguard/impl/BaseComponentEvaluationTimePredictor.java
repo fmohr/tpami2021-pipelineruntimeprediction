@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentUtil;
 import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;

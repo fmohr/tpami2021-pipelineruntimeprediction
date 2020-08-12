@@ -19,6 +19,7 @@ import ast
 
 
 classifiers = ['bayesnet', 'decisionstump', 'decisiontable', 'ibk', 'j48', 'jrip', 'kstar', 'lmt', 'logistic', 'multilayerperceptron', 'naivebayes', 'naivebayesmultinomial', 'oner', 'part', 'reptree', 'randomforest', 'randomtree', 'simplelogistic', 'smo', 'votedperceptron', 'zeror']
+preprocessors = ['bestfirst_cfssubseteval', 'greedystepwise_cfssubseteval', 'ranker_correlationattributeeval', 'ranker_gainratioattributeeval', 'ranker_infogainattributeeval', 'ranker_onerattributeeval', 'ranker_principalcomponents',  'ranker_relieffattributeeval', 'ranker_symmetricaluncertattributeeval']
 
 
 def map2dict(m):

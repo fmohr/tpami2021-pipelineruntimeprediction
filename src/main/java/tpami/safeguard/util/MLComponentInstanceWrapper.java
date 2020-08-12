@@ -1,6 +1,6 @@
 package tpami.safeguard.util;
 
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 
 public class MLComponentInstanceWrapper extends ComponentInstance {
 

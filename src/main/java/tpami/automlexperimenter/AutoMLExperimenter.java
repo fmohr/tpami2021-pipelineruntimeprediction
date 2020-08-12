@@ -9,8 +9,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
+import org.api4.java.ai.ml.classification.singlelabel.evaluation.ISingleLabelClassification;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledInstance;
+import org.api4.java.ai.ml.core.evaluation.IPredictionAndGroundTruthTable;
 import org.api4.java.ai.ml.core.evaluation.execution.ILearnerRunReport;
 import org.api4.java.ai.ml.core.evaluation.execution.ISupervisedLearnerExecutor;
 import org.api4.java.ai.ml.core.evaluation.execution.LearnerExecutionFailedException;
@@ -22,8 +24,8 @@ import org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.eventbus.Subscribe;
 
-import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStore;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.db.IDatabaseConfig;
 import ai.libs.jaicore.db.sql.SQLAdapter;
 import ai.libs.jaicore.experiments.ExperimentDBEntry;
@@ -92,7 +94,7 @@ public class AutoMLExperimenter {
 			}
 		} else {
 			System.out.println("Run experiments");
-//			createTableWithExperiments();
+			//			createTableWithExperiments();
 			runExperiments();
 		}
 	}
@@ -186,7 +188,7 @@ public class AutoMLExperimenter {
 
 					}
 					/* create objects for experiment */
-//					logger.info("Evaluate {} for dataset {} and seed {}", algorithmMode, datasetName, seed);
+					//					logger.info("Evaluate {} for dataset {} and seed {}", algorithmMode, datasetName, seed);
 
 					MLPlan<IWekaClassifier> mlplan = builder.build();
 					mlplan.setLoggerName("mlplan");
@@ -288,7 +290,8 @@ public class AutoMLExperimenter {
 					ILearnerRunReport report = executor.execute(model, trainTestSplit.get(1));
 
 					String candidate = new ComponentInstanceAdapter().componentInstanceToString(mlplan.getComponentInstanceOfSelectedClassifier());
-					double loss = EClassificationPerformanceMeasure.ERRORRATE.loss(report.getPredictionDiffList());
+					IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification> l = (IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification>)report.getPredictionDiffList();
+					double loss = EClassificationPerformanceMeasure.ERRORRATE.loss(l);
 
 					/* run fictive experiment */
 					Map<String, Object> results = new HashMap<>();

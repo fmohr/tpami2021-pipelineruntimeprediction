@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.aeonbits.owner.ConfigFactory;
+import org.api4.java.ai.ml.classification.singlelabel.evaluation.ISingleLabelClassification;
 
 import ai.libs.jaicore.basic.sets.SetUtil;
 import ai.libs.jaicore.db.IDatabaseConfig;
@@ -93,7 +94,7 @@ public class ResultReader {
 					counter ++;
 				}
 				if (groundTruth != null) {
-					PredictionDiff<?, ?> diff = new PredictionDiff<>(groundTruth, predictions);
+					PredictionDiff<? extends Integer, ? extends ISingleLabelClassification> diff = (PredictionDiff<? extends Integer, ? extends ISingleLabelClassification>)new PredictionDiff<>(groundTruth, predictions);
 					double errorRate = EClassificationPerformanceMeasure.ERRORRATE.loss(diff);
 					long trainTime = (trainEnd.getTime() - trainStart.getTime())/ 1000;
 					long testTime = (testEnd.getTime() - testStart.getTime()) / 1000;

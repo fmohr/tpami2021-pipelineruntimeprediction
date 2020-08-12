@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
-import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.Pair;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.ml.core.evaluation.evaluator.MonteCarloCrossValidationEvaluator;
 import ai.libs.mlplan.core.ITimeTrackingLearner;
 import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;

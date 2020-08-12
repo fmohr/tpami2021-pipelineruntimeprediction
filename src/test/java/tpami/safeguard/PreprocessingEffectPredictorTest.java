@@ -7,10 +7,10 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import ai.libs.hasco.model.Component;
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.model.Component;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentUtil;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
 import tpami.safeguard.impl.MetaFeatureContainer;
 import tpami.safeguard.impl.PreprocessingEffectPredictor;

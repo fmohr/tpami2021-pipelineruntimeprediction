@@ -8,9 +8,9 @@ import java.util.List;
 import org.aeonbits.owner.ConfigFactory;
 import org.junit.BeforeClass;
 
-import ai.libs.hasco.serialization.ComponentLoader;
 import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.serialization.ComponentLoader;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 
 public abstract class APreprocessingPredictorTest {

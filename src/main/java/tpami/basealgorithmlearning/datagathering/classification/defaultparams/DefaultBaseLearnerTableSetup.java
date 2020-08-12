@@ -8,15 +8,14 @@ public class DefaultBaseLearnerTableSetup {
 	public static void main(final String[] args) throws Exception {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
-			System.out.println(baseLearner);
-			if (!baseLearner.contains("weka.classifiers.functions.Logistic")) {
+			if (!baseLearner.toLowerCase().contains("j48")) {
 				continue;
 			}
+			System.out.println(baseLearner);
 
 			/* prepare database for this combination */
 			DefaultBaseLearnerConfigContainer container = new DefaultBaseLearnerConfigContainer("conf/dbcon-local.conf", baseLearner);
-			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getConfig(), container.getDatabaseHandle());
-			preparer.setLoggerName("example");
+			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getExperimentSetConfig(), container.getDatabaseHandle());
 			preparer.synchronizeExperiments();
 		}
 	}

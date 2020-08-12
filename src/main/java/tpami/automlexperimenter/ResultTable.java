@@ -11,7 +11,6 @@ import ai.libs.jaicore.basic.ValueUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection.EGroupMethod;
 import ai.libs.jaicore.basic.kvstore.KVStoreSequentialComparator;
-import ai.libs.jaicore.basic.kvstore.KVStoreStatisticsUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreUtil;
 import ai.libs.jaicore.db.IDatabaseConfig;
 import ai.libs.jaicore.db.sql.SQLAdapter;
@@ -44,8 +43,8 @@ public class ResultTable {
 			KVStoreCollection grouped1h = merged1h.group(new String[] { "approach", "dataset", "timeout" }, groupMethod);
 			KVStoreCollection grouped24h = merged24h.group(new String[] { "approach", "dataset", "timeout" }, groupMethod);
 
-			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped1h, "dataset", "approach", "loss_list", "sig");
-			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped24h, "dataset", "approach", "loss_list", "sig");
+			//			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped1h, "dataset", "approach", "loss_list", "sig");
+			//			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped24h, "dataset", "approach", "loss_list", "sig");
 
 			KVStoreCollection groupedAll = new KVStoreCollection();
 			groupedAll.addAll(grouped1h);
