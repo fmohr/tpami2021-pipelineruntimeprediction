@@ -4,8 +4,9 @@ import java.io.File;
 
 import org.aeonbits.owner.ConfigFactory;
 
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.experiments.IExperimentDatabaseHandle;
 import ai.libs.jaicore.experiments.databasehandle.ExperimenterMySQLHandle;
 import tpami.basealgorithmlearning.datagathering.classification.defaultparams.IDefaultBaseLearnerExperimentConfig;
@@ -31,7 +32,7 @@ public class ParametrizedPreprocessorConfigContainer {
 		//		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class);
 		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class);
 		dbConfig.loadPropertiesFromFile(new File(dbconfig));
-		final SQLAdapter adapter = new SQLAdapter(dbConfig);
+		final IDatabaseAdapter adapter = DatabaseAdapterFactory.get(dbConfig);
 		this.databaseHandle = new ExperimenterMySQLHandle(adapter, "evaluations_pp_" + searcher + "_" + evaluator + "_c");
 	}
 

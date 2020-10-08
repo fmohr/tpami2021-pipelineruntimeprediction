@@ -1,9 +1,11 @@
 package tpami.automlexperimenter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -13,6 +15,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.Component;
 import ai.libs.jaicore.components.model.ComponentInstance;
 
@@ -45,13 +48,13 @@ public class ComponentInstanceReader extends StdDeserializer<ComponentInstance> 
 
 		Component component = this.possibleComponents.stream().filter(c -> c.getName().equals(componentName)).findFirst().orElseThrow(NoSuchElementException::new);
 
-		Map<String, ComponentInstance> satisfactionOfRequiredInterfaces = new HashMap<>();
+		Map<String, List<IComponentInstance>> satisfactionOfRequiredInterfaces = new HashMap<>();
 		// recursively resolve the requiredInterfaces
 		TreeNode n = p.get("requiredInterfaces");
 		Iterator<String> fields = n.fieldNames();
 		while (fields.hasNext()) {
 			String key = fields.next();
-			satisfactionOfRequiredInterfaces.put(key, this.readAsTree(n.get(key)));
+			satisfactionOfRequiredInterfaces.put(key, Arrays.asList(this.readAsTree(n.get(key))));
 		}
 		return new ComponentInstance(component, parameterValues, satisfactionOfRequiredInterfaces);
 	}

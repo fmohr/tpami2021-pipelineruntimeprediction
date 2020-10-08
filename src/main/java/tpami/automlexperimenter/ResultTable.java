@@ -12,8 +12,9 @@ import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection.EGroupMethod;
 import ai.libs.jaicore.basic.kvstore.KVStoreSequentialComparator;
 import ai.libs.jaicore.basic.kvstore.KVStoreUtil;
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 
 public class ResultTable {
 
@@ -21,7 +22,7 @@ public class ResultTable {
 
 	public static void main(final String[] args) {
 		DBC = (IDatabaseConfig) ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("automlexperimenter.properties"));
-		try (SQLAdapter adapter = new SQLAdapter(DBC)) {
+		try (IDatabaseAdapter adapter = DatabaseAdapterFactory.get(DBC)) {
 			KVStoreCollection safeguard1h = KVStoreUtil.readFromMySQLQuery(adapter, "SELECT * FROM cont_jobs_mlplan_safeguard_1h WHERE loss IS NOT NULL", new HashMap<>());
 			KVStoreCollection vanilla1h = KVStoreUtil.readFromMySQLQuery(adapter, "SELECT * FROM cont_jobs_mlplan_1h WHERE loss IS NOT NULL", new HashMap<>());
 

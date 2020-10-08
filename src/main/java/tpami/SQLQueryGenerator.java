@@ -11,6 +11,8 @@ public class SQLQueryGenerator {
 
 		System.out.println(ExperimentUtil.getOccurredExceptions("evaluations_classifiers_multilayerperceptron", "AlgorithmTime", "too large"));
 
+		System.out.println(ExperimentUtil.getProgressQuery("evaluations_classifiers_{$ALGORITHM}").replace("\"", "\\\""));
+
 		Collection<String> classifiers = WekaUtil.getBasicLearners();
 		for (String c : classifiers) {
 			String cName = c.substring(c.lastIndexOf(".") + 1).toLowerCase();

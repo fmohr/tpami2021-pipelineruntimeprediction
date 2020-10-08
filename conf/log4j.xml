@@ -66,6 +66,10 @@
     <appender-ref ref="errFileAppender" />
   </logger>
   
+  <logger name="tpami.basealgorithmlearning">
+    <level value="info" />
+  </logger>
+  
   <logger name="tester">
 	<level value="info" />
 	

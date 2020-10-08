@@ -16,8 +16,8 @@ import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.datastructure.kvstore.IKVStore;
 
 import ai.libs.jaicore.db.IDatabaseAdapter;
-import ai.libs.jaicore.db.sql.rest.IRestDatabaseConfig;
-import ai.libs.jaicore.db.sql.rest.RestSqlAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
+import ai.libs.jaicore.db.sql.IRestDatabaseConfig;
 import ai.libs.jaicore.ml.core.dataset.serialization.OpenMLDatasetReader;
 import ai.libs.jaicore.ml.core.filter.SplitterUtil;
 import tpami.basealgorithmlearning.datagathering.classification.defaultparams.IDefaultBaseLearnerExperimentConfig;
@@ -36,7 +36,7 @@ class LogDatasetToRegressionDatasetConverter {
 	private int lastDatasetId;
 
 	public static void main(final String[] args) throws Exception {
-		LogDatasetToRegressionDatasetConverter con = new LogDatasetToRegressionDatasetConverter(new RestSqlAdapter((IRestDatabaseConfig)ConfigFactory.create(IRestDatabaseConfig.class).loadPropertiesFromFile(new File(args[0]))));
+		LogDatasetToRegressionDatasetConverter con = new LogDatasetToRegressionDatasetConverter(DatabaseAdapterFactory.get((IRestDatabaseConfig)ConfigFactory.create(IRestDatabaseConfig.class).loadPropertiesFromFile(new File(args[0]))));
 		String classifier = args[1];
 		con.convertTable("evaluations_classifiers_" + classifier, "regression_classifiers_" + classifier);
 		//		con.createRegressionTable("regression_classifiers_" + classifier);

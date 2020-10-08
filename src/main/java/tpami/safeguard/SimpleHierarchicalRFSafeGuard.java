@@ -29,6 +29,7 @@ import com.google.common.eventbus.Subscribe;
 
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.Pair;
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.ml.core.evaluation.evaluator.MonteCarloCrossValidationEvaluator;
 import ai.libs.mlplan.core.ITimeTrackingLearner;
@@ -282,8 +283,9 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	}
 
 	@Override
-	public boolean predictWillAdhereToTimeout(final ComponentInstance ci, final Timeout timeout) throws Exception {
+	public boolean predictWillAdhereToTimeout(final IComponentInstance ciOrig, final Timeout timeout) throws Exception {
 		System.out.println("Train null? " + (this.train == null) + " Test null? " + (this.test == null));
+		ComponentInstance ci = (ComponentInstance)ciOrig;
 		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INDUCTION_TIME, "-1.0");
 		ci.putAnnotation(IEvaluationSafeGuard.ANNOTATION_PREDICTED_INFERENCE_TIME, "-1.0");
 		double inductionTime = this.predictInductionTime(ci, this.train);
@@ -344,12 +346,12 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	}
 
 	@Override
-	public double predictInductionTime(final ComponentInstance ci, final ILabeledDataset<?> dTrain) throws Exception {
+	public double predictInductionTime(final IComponentInstance ci, final ILabeledDataset<?> dTrain) throws Exception {
 		MLComponentInstanceWrapper ciw;
 		if (ci instanceof MLComponentInstanceWrapper) {
 			ciw = (MLComponentInstanceWrapper) ci;
 		} else {
-			ciw = new MLComponentInstanceWrapper(ci);
+			ciw = new MLComponentInstanceWrapper((ComponentInstance)ci);
 		}
 		return this.predictInductionTime(ciw, new MetaFeatureContainer(dTrain)) * this.inductionCalibrationFactor;
 	}
@@ -403,19 +405,19 @@ public class SimpleHierarchicalRFSafeGuard implements IEvaluationSafeGuard {
 	}
 
 	@Override
-	public double predictInferenceTime(final ComponentInstance ci, final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest) throws Exception {
+	public double predictInferenceTime(final IComponentInstance ci, final ILabeledDataset<?> dTrain, final ILabeledDataset<?> dTest) throws Exception {
 		MLComponentInstanceWrapper ciw;
 		if (ci instanceof MLComponentInstanceWrapper) {
 			ciw = (MLComponentInstanceWrapper) ci;
 		} else {
-			ciw = new MLComponentInstanceWrapper(ci);
+			ciw = new MLComponentInstanceWrapper((ComponentInstance)ci);
 		}
 		return this.predictInferenceTime(ciw, new MetaFeatureContainer(dTrain), new MetaFeatureContainer(dTest)) * this.inferenceCalibrationFactor;
 	}
 
 	@Override
-	public void updateWithActualInformation(final ComponentInstance ci, final ITimeTrackingLearner wrappedLearner) {
-		MLComponentInstanceWrapper ciw = new MLComponentInstanceWrapper(ci);
+	public void updateWithActualInformation(final IComponentInstance ci, final ITimeTrackingLearner wrappedLearner) {
+		MLComponentInstanceWrapper ciw = new MLComponentInstanceWrapper((ComponentInstance)ci);
 		if (ciw.isBaseLearner()) {
 			IBaseComponentEvaluationTimePredictor pred = this.componentRuntimePredictorMap.get(ciw.getComponent().getName());
 			pred.setActualDefaultConfigurationInductionTime(new MetaFeatureContainer(this.train), wrappedLearner.getFitTimes().stream().mapToDouble(x -> (double) x).average().getAsDouble());

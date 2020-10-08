@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.kvstore.KVStoreUtil;
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.Component;
 import ai.libs.jaicore.components.model.ComponentInstance;
 import weka.classifiers.bayes.BayesNet;
@@ -73,8 +74,8 @@ public class DataBasedComponentPredictorUtil {
 			"ranker_onerattributeeval", "ranker_principalcomponents", "ranker_relieffattributeeval", "ranker_symmetricaluncertattributeeval");
 
 	public static String componentInstanceToPreprocessorID(final ComponentInstance ci) {
-		ComponentInstance searcher = ci.getSatisfactionOfRequiredInterfaces().get("search");
-		ComponentInstance evaluator = ci.getSatisfactionOfRequiredInterfaces().get("eval");
+		IComponentInstance searcher = ci.getSatisfactionOfRequiredInterfaces().get("search").get(0);
+		IComponentInstance evaluator = ci.getSatisfactionOfRequiredInterfaces().get("eval").get(0);
 
 		switch (evaluator.getComponent().getName()) {
 		case "weka.attributeSelection.CfsSubsetEval":

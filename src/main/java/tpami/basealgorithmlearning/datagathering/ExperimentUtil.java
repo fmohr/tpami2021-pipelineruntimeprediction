@@ -165,7 +165,7 @@ public class ExperimentUtil implements ILoggingCustomizable {
 		if (originalDataset.size() < trainsize + minTestSize && !doesExtensionExist(openmlid)) {
 			throw new IllegalArgumentException("Dataset has not sufficient points (" +  originalDataset.size() + " instead of the required " + (trainsize + minTestSize) + "), but no SMOTE file existent for openmlid " + openmlid);
 		}
-		return this.createSizeAdjustedTrainTestSplit(originalDataset, originalDataset.size() < trainsize ? this.getSMOTEDatasetExtension(openmlid) : null, trainsize, minTestSize, numAttributes, random);
+		return this.createSizeAdjustedTrainTestSplit(originalDataset, originalDataset.size() < trainsize + minTestSize ? this.getSMOTEDatasetExtension(openmlid) : null, trainsize, minTestSize, numAttributes, random);
 	}
 
 	public List<ILabeledDataset<?>> createSizeAdjustedTrainTestSplit(final ILabeledDataset<?> originalDataset, final ILabeledDataset<?> datasetExtension, final int trainsize, final int minTestSize, final int numAttributes,
@@ -201,7 +201,7 @@ public class ExperimentUtil implements ILoggingCustomizable {
 					testFold.addAll(SetUtil.getRandomSubset(datasetExtension, minTestSize - testFold.size(), random));
 				}
 				else {
-					throw new IllegalStateException("Original data has not enough instances, and there is no SMOTE file available!");
+					throw new IllegalStateException("Original data has not enough instances, but no dataset extension has been passed!");
 				}
 			}
 		}

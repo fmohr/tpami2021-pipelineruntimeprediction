@@ -18,9 +18,10 @@ import org.junit.Test;
 
 import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.api.IComponentRepository;
 import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.components.model.ComponentUtil;
-import ai.libs.jaicore.components.serialization.ComponentLoader;
+import ai.libs.jaicore.components.serialization.ComponentSerialization;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
 import tpami.safeguard.impl.BaseComponentEvaluationTimePredictor;
 import tpami.safeguard.impl.MetaFeatureContainer;
@@ -33,7 +34,7 @@ public class BasicComponentPredictorTest {
 	private static final String DEFAULT_FILE_PATTERN = "runtimes_%s_default.csv";
 	private static final String PARAM_FILE_PATTERN = "runtimes_%s_parametrized.csv";
 
-	protected static ComponentLoader cl;
+	protected static IComponentRepository cl;
 	private static Map<String, String> learners = new HashMap<>();
 	private static MetaFeatureContainer metaFeaturesTrain;
 
@@ -42,7 +43,7 @@ public class BasicComponentPredictorTest {
 		Arrays.stream(DataBasedComponentPredictorUtil.WEKA_CLASSES).forEach(x -> {
 			learners.put(x.getSimpleName().toLowerCase(), x.getName());
 		});
-		cl = new ComponentLoader(new ResourceFile("automl/searchmodels/weka/weka-all-autoweka.json"));
+		cl = new ComponentSerialization().deserializeRepository(new ResourceFile("automl/searchmodels/weka/weka-all-autoweka.json"));
 		Instances dataset = new Instances(new FileReader(new File("car.arff")));
 		dataset.setClassIndex(dataset.numAttributes() - 1);
 
@@ -70,7 +71,7 @@ public class BasicComponentPredictorTest {
 
 					Random rand = new Random();
 					for (int i = 0; i < 10; i++) {
-						ComponentInstance ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(learnerEntry.getValue()), rand);
+						ComponentInstance ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(learnerEntry.getValue()), rand);
 						System.out.println(pred.predictEvaluationTime(ci, metaFeaturesTrain, 1000));
 					}
 				} catch (Exception e) {

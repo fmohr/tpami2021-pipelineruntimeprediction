@@ -24,8 +24,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import ai.libs.jaicore.basic.reconstruction.ReconstructionPlan;
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.ml.core.dataset.DatasetUtil;
 import ai.libs.jaicore.ml.core.filter.SplitterUtil;
 import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
@@ -40,7 +41,7 @@ import weka.core.converters.ArffSaver;
 public class BaseAlgorithmDatasetPreparer {
 
 	public static void main(final String[] arg) throws SQLException, JsonParseException, JsonMappingException, ReconstructionException, IOException, SplitFailedException, InterruptedException {
-		SQLAdapter adapter = new SQLAdapter((IDatabaseConfig)ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("dbcon.conf")));
+		IDatabaseAdapter adapter = DatabaseAdapterFactory.get((IDatabaseConfig)ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("dbcon.conf")));
 		final String table = "bl_logistic";
 
 		/* create meta-database in form of a list of maps from database entries */

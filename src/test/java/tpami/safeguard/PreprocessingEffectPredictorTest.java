@@ -3,12 +3,13 @@ package tpami.safeguard;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.FileReader;
+import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;
 
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
-import ai.libs.jaicore.components.model.Component;
+import ai.libs.jaicore.components.api.IComponent;
 import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.components.model.ComponentUtil;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
@@ -69,58 +70,58 @@ public class PreprocessingEffectPredictorTest extends APreprocessingPredictorTes
 
 		AttributeSelection as = new AttributeSelection();
 
-		Component searchC = null;
+		IComponent searchC = null;
 		switch (split[0]) {
 		case "bestfirst":
-			searchC = cl.getComponentWithName(BestFirst.class.getName());
+			searchC = cl.getComponent(BestFirst.class.getName());
 			break;
 		case "greedystepwise":
-			searchC = cl.getComponentWithName(GreedyStepwise.class.getName());
+			searchC = cl.getComponent(GreedyStepwise.class.getName());
 			break;
 		case "ranker":
-			searchC = cl.getComponentWithName(Ranker.class.getName());
+			searchC = cl.getComponent(Ranker.class.getName());
 			break;
 		}
 
-		Component evalC = null;
+		IComponent evalC = null;
 		switch (split[1]) {
 		case "cfssubseteval":
-			evalC = cl.getComponentWithName(CfsSubsetEval.class.getName());
+			evalC = cl.getComponent(CfsSubsetEval.class.getName());
 			break;
 		case "correlationattributeeval":
-			evalC = cl.getComponentWithName(CorrelationAttributeEval.class.getName());
+			evalC = cl.getComponent(CorrelationAttributeEval.class.getName());
 			break;
 		case "gainratioattributeeval":
-			evalC = cl.getComponentWithName(GainRatioAttributeEval.class.getName());
+			evalC = cl.getComponent(GainRatioAttributeEval.class.getName());
 			break;
 		case "infogainattributeeval":
-			evalC = cl.getComponentWithName(InfoGainAttributeEval.class.getName());
+			evalC = cl.getComponent(InfoGainAttributeEval.class.getName());
 			break;
 		case "onerattributeeval":
-			evalC = cl.getComponentWithName(OneRAttributeEval.class.getName());
+			evalC = cl.getComponent(OneRAttributeEval.class.getName());
 			break;
 		case "principalcomponents":
-			evalC = cl.getComponentWithName(PrincipalComponents.class.getName());
+			evalC = cl.getComponent(PrincipalComponents.class.getName());
 			break;
 		case "relieffattributeeval":
-			evalC = cl.getComponentWithName(ReliefFAttributeEval.class.getName());
+			evalC = cl.getComponent(ReliefFAttributeEval.class.getName());
 			break;
 		case "symmetricaluncertattributeeval":
-			evalC = cl.getComponentWithName(SymmetricalUncertAttributeEval.class.getName());
+			evalC = cl.getComponent(SymmetricalUncertAttributeEval.class.getName());
 			break;
 		}
 
 		assertNotNull(evalC);
 		assertNotNull(searchC);
 
-		Component asC = cl.getComponentWithName(AttributeSelection.class.getName());
+		IComponent asC = cl.getComponent(AttributeSelection.class.getName());
 
 		ComponentInstance asCI = ComponentUtil.getDefaultParameterizationOfComponent(asC);
 		ComponentInstance searchCI = ComponentUtil.getDefaultParameterizationOfComponent(searchC);
 		ComponentInstance evalCI = ComponentUtil.getDefaultParameterizationOfComponent(evalC);
 
-		asCI.getSatisfactionOfRequiredInterfaces().put("search", searchCI);
-		asCI.getSatisfactionOfRequiredInterfaces().put("eval", evalCI);
+		asCI.getSatisfactionOfRequiredInterfaces().put("search", Arrays.asList(searchCI));
+		asCI.getSatisfactionOfRequiredInterfaces().put("eval", Arrays.asList(evalCI));
 
 		return asCI;
 	}

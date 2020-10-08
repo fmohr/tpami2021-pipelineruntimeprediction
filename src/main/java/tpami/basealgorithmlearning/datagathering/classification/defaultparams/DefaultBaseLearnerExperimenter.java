@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import ai.libs.jaicore.experiments.ExperimentRunner;
 import ai.libs.jaicore.logging.LoggerUtil;
 import tpami.basealgorithmlearning.IConfigContainer;
+import tpami.basealgorithmlearning.datagathering.classification.ClassifierExperimentEvaluator;
 
 public class DefaultBaseLearnerExperimenter {
 
@@ -24,7 +25,7 @@ public class DefaultBaseLearnerExperimenter {
 		String executorinfo = args[2];
 
 		/* create evaluator and runner */
-		DefaultBaseLearnerExperimentEvaluator evaluator = new DefaultBaseLearnerExperimentEvaluator(configFileName, classifierName, to);
+		ClassifierExperimentEvaluator evaluator = new ClassifierExperimentEvaluator(new DefaultBaseLearnerConfigContainer(configFileName, classifierName), classifierName, to);
 		IConfigContainer container = evaluator.getContainer();
 		ExperimentRunner runner = new ExperimentRunner(container.getExperimentSetConfig(), evaluator, container.getDatabaseHandle(), executorinfo);
 

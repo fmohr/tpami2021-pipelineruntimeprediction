@@ -1,16 +1,20 @@
 package tpami.automlexperimenter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ai.libs.jaicore.components.api.IComponent;
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.Component;
 import ai.libs.jaicore.components.model.ComponentInstance;
 
@@ -31,7 +35,7 @@ public class ComponentInstanceAdapter {
 		this(new LinkedList<>());
 	}
 
-	public String componentInstanceToString(final ComponentInstance ci) throws JsonProcessingException {
+	public String componentInstanceToString(final IComponentInstance ci) throws JsonProcessingException {
 		if (ci == null) {
 			return "null";
 		}
@@ -39,19 +43,19 @@ public class ComponentInstanceAdapter {
 		return mapper.writeValueAsString(this.componentInstanceToMap(ci));
 	}
 
-	public Map<String, Object> componentInstanceToMap(final ComponentInstance ci) {
+	public Map<String, Object> componentInstanceToMap(final IComponentInstance ci) {
 		Map<String, Object> ciMap = new HashMap<>();
 		ciMap.put(L_COMPONENT, this.componentToString(ci.getComponent()));
 		ciMap.put(L_PARAM_VALUES, ci.getParameterValues());
 
 		Map<String, Object> satisfactionOfRequiredInterfaces = new HashMap<>();
-		ci.getSatisfactionOfRequiredInterfaces().entrySet().stream().forEach(x -> satisfactionOfRequiredInterfaces.put(x.getKey(), this.componentInstanceToMap(x.getValue())));
+		ci.getSatisfactionOfRequiredInterfaces().entrySet().stream().forEach(x -> satisfactionOfRequiredInterfaces.put(x.getKey(), this.componentInstanceToMap(x.getValue().get(0))));
 		ciMap.put(L_SAT_REQ_IFACE, satisfactionOfRequiredInterfaces);
 
 		return ciMap;
 	}
 
-	private Map<String, Object> componentToString(final Component comp) {
+	private Map<String, Object> componentToString(final IComponent comp) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put(L_NAME, comp.getName());
 		return componentMap;
@@ -73,12 +77,12 @@ public class ComponentInstanceAdapter {
 			parameterValues.put(fieldName, node.get(L_PARAM_VALUES).get(fieldName).asText());
 		}
 
-		Map<String, ComponentInstance> satisfactionOfRequiredInterfaces = new HashMap<>();
+		Map<String, List<IComponentInstance>> satisfactionOfRequiredInterfaces = new HashMap<>();
 		if (node.get(L_SAT_REQ_IFACE) != null) {
 			Iterator<String> satReqIfaceIt = node.get(L_SAT_REQ_IFACE).fieldNames();
 			while (satReqIfaceIt.hasNext()) {
 				String ifaceName = satReqIfaceIt.next();
-				satisfactionOfRequiredInterfaces.put(ifaceName, this.readComponentInstanceFromJson(node.get(L_SAT_REQ_IFACE).get(ifaceName)));
+				satisfactionOfRequiredInterfaces.put(ifaceName, Arrays.asList(this.readComponentInstanceFromJson(node.get(L_SAT_REQ_IFACE).get(ifaceName))));
 			}
 		}
 

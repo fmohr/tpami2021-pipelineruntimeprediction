@@ -14,7 +14,7 @@ import random
 import os.path
 from os import path
 from itertools import chain, combinations
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 import ast
 
 

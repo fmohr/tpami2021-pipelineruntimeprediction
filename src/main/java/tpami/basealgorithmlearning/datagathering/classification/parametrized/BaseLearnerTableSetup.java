@@ -9,15 +9,15 @@ public class BaseLearnerTableSetup {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
 			System.out.println(baseLearner);
-			if (!baseLearner.contains("weka.classifiers.lazy.IBk")) {
+			if (!baseLearner.contains("weka.classifiers.bayes.NaiveBayes")) {
 				continue;
 			}
 
 			/* prepare database for this combination */
 			BaseLearnerConfigContainer container = new BaseLearnerConfigContainer("conf/dbcon-local.conf", baseLearner);
-			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getConfig(), container.getDatabaseHandle());
+			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getExperimentSetConfig(), container.getDatabaseHandle());
 			preparer.setLoggerName("example");
-			preparer.synchronizeExperiments();
+			preparer.installSubGridOfExperiments(100000);
 		}
 	}
 }

@@ -8,7 +8,7 @@ public class DefaultBaseLearnerTableSetup {
 	public static void main(final String[] args) throws Exception {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
-			if (!baseLearner.toLowerCase().contains("j48")) {
+			if (!baseLearner.toLowerCase().contains("stump")) {
 				continue;
 			}
 			System.out.println(baseLearner);

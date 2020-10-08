@@ -29,7 +29,7 @@ import com.google.common.eventbus.Subscribe;
 import ai.libs.jaicore.basic.FileUtil;
 import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.logging.LoggerUtil;
 import ai.libs.jaicore.ml.classification.loss.dataset.EAggregatedClassifierMetric;
 import ai.libs.jaicore.ml.core.dataset.DatasetUtil;
@@ -43,7 +43,7 @@ import ai.libs.jaicore.ml.weka.classification.learner.IWekaClassifier;
 import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import ai.libs.jaicore.ml.weka.classification.pipeline.MLPipeline;
 import ai.libs.mlplan.core.MLPlan;
-import ai.libs.mlplan.multiclass.wekamlplan.MLPlanWekaBuilder;
+import ai.libs.mlplan.weka.MLPlanWekaBuilder;
 
 public class Experimenter {
 
@@ -81,7 +81,7 @@ public class Experimenter {
 		//		}
 		/* setup database connection */
 		IDatabaseConfig dbConfig = (IDatabaseConfig)ConfigCache.getOrCreate(IDatabaseConfig.class).loadPropertiesFromFile(new File("dbcon.conf"));
-		try (IDatabaseAdapter dbAdapter = new SQLAdapter(dbConfig)){
+		try (IDatabaseAdapter dbAdapter = DatabaseAdapterFactory.get(dbConfig)){
 			final String table = dbConfig.getDBTableName();
 			final String resultTable = table + "_results";
 

@@ -15,8 +15,9 @@ import org.aeonbits.owner.ConfigFactory;
 import org.api4.java.ai.ml.classification.singlelabel.evaluation.ISingleLabelClassification;
 
 import ai.libs.jaicore.basic.sets.SetUtil;
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.ml.classification.loss.dataset.EClassificationPerformanceMeasure;
 import ai.libs.jaicore.ml.core.evaluation.evaluator.PredictionDiff;
 
@@ -24,7 +25,7 @@ public class ResultReader {
 	public static void main(final String[] args) throws Exception {
 
 		/* establish DB connection */
-		SQLAdapter adapter = new SQLAdapter((IDatabaseConfig)ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("dbcon.conf")));
+		IDatabaseAdapter adapter = DatabaseAdapterFactory.get((IDatabaseConfig)ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("dbcon.conf")));
 		final String table = "mlplanmlj2019reeval_aggregate";
 
 		/* parse SQL file */
