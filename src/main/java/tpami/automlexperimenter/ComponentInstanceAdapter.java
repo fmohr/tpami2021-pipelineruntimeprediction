@@ -11,8 +11,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ai.libs.hasco.model.Component;
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.api.IComponent;
+import ai.libs.jaicore.components.api.IComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 
 public class ComponentInstanceAdapter {
 
@@ -21,9 +22,9 @@ public class ComponentInstanceAdapter {
 	private static final String L_PARAM_VALUES = "parameterValues";
 	private static final String L_SAT_REQ_IFACE = "satisfactionOfRequiredInterfaces";
 
-	private Collection<Component> components;
+	private Collection<IComponent> components;
 
-	public ComponentInstanceAdapter(final Collection<Component> components) {
+	public ComponentInstanceAdapter(final Collection<IComponent> components) {
 		this.components = components;
 	}
 
@@ -31,7 +32,7 @@ public class ComponentInstanceAdapter {
 		this(new LinkedList<>());
 	}
 
-	public String componentInstanceToString(final ComponentInstance ci) throws JsonProcessingException {
+	public String componentInstanceToString(final IComponentInstance ci) throws JsonProcessingException {
 		if (ci == null) {
 			return "null";
 		}
@@ -39,7 +40,7 @@ public class ComponentInstanceAdapter {
 		return mapper.writeValueAsString(this.componentInstanceToMap(ci));
 	}
 
-	public Map<String, Object> componentInstanceToMap(final ComponentInstance ci) {
+	public Map<String, Object> componentInstanceToMap(final IComponentInstance ci) {
 		Map<String, Object> ciMap = new HashMap<>();
 		ciMap.put(L_COMPONENT, this.componentToString(ci.getComponent()));
 		ciMap.put(L_PARAM_VALUES, ci.getParameterValues());
@@ -51,7 +52,7 @@ public class ComponentInstanceAdapter {
 		return ciMap;
 	}
 
-	private Map<String, Object> componentToString(final Component comp) {
+	private Map<String, Object> componentToString(final IComponent comp) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put(L_NAME, comp.getName());
 		return componentMap;

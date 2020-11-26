@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -13,8 +14,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
-import ai.libs.hasco.model.Component;
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.api.IComponent;
+import ai.libs.jaicore.components.api.IComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 
 public class ComponentInstanceReader extends StdDeserializer<ComponentInstance> {
 
@@ -23,10 +25,10 @@ public class ComponentInstanceReader extends StdDeserializer<ComponentInstance> 
 	 */
 	private static final long serialVersionUID = 4216559441244072999L;
 
-	private transient Collection<Component> possibleComponents; // the idea is not to serialize the deserializer, so this can be transient
+	private transient Collection<IComponent> possibleComponents; // the idea is not to serialize the deserializer, so this can be transient
 
-	public ComponentInstanceReader(final Collection<Component> possibleComponents) {
-		super(ComponentInstance.class);
+	public ComponentInstanceReader(final Collection<IComponent> possibleComponents) {
+		super(IComponentInstance.class);
 		this.possibleComponents = possibleComponents;
 	}
 
@@ -43,9 +45,9 @@ public class ComponentInstanceReader extends StdDeserializer<ComponentInstance> 
 
 		String componentName = p.get("component").toString().replaceAll("\"", "");
 
-		Component component = this.possibleComponents.stream().filter(c -> c.getName().equals(componentName)).findFirst().orElseThrow(NoSuchElementException::new);
+		IComponent component = this.possibleComponents.stream().filter(c -> c.getName().equals(componentName)).findFirst().orElseThrow(NoSuchElementException::new);
 
-		Map<String, ComponentInstance> satisfactionOfRequiredInterfaces = new HashMap<>();
+		Map<String, List<IComponentInstance>> satisfactionOfRequiredInterfaces = new HashMap<>();
 		// recursively resolve the requiredInterfaces
 		TreeNode n = p.get("requiredInterfaces");
 		Iterator<String> fields = n.fieldNames();

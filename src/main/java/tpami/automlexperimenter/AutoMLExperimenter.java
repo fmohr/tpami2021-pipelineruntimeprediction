@@ -22,10 +22,11 @@ import org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.eventbus.Subscribe;
 
-import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStore;
+import ai.libs.jaicore.components.api.IComponentInstance;
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.experiments.ExperimentDBEntry;
 import ai.libs.jaicore.experiments.ExperimentDatabasePreparer;
 import ai.libs.jaicore.experiments.ExperimentRunner;
@@ -47,11 +48,11 @@ import ai.libs.mlplan.core.ITimeTrackingLearner;
 import ai.libs.mlplan.core.MLPlan;
 import ai.libs.mlplan.core.TimeTrackingLearnerWrapper;
 import ai.libs.mlplan.core.events.TimeTrackingLearnerEvaluationEvent;
-import ai.libs.mlplan.multiclass.wekamlplan.MLPlanWekaBuilder;
 import ai.libs.mlplan.safeguard.AlwaysEvaluateSafeGuardFactory;
 import ai.libs.mlplan.safeguard.AlwaysPreventSafeGuardFactory;
 import ai.libs.mlplan.safeguard.EvaluationSafeGuardFiredEvent;
 import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
+import ai.libs.mlplan.weka.MLPlanWekaBuilder;
 import tpami.safeguard.CalibrationConstantsDeterminedEvent;
 import tpami.safeguard.SimpleHierarchicalRFSafeGuardFactory;
 
@@ -65,7 +66,7 @@ public class AutoMLExperimenter {
 	private static final IDatabaseConfig dbconfig = (IDatabaseConfig) ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(configFile);
 	private static final IExperimentDatabaseHandle dbHandle = new ExperimenterMySQLHandle(dbconfig);
 
-	private static SQLAdapter adapter = new SQLAdapter(dbconfig);
+	private static IDatabaseAdapter adapter = DatabaseAdapterFactory.get(dbconfig);
 
 	enum ESafeGuardType {
 		ALWAYS_EVAL, ALWAYS_PREVENT, HIERARCHICAL;
@@ -92,7 +93,7 @@ public class AutoMLExperimenter {
 			}
 		} else {
 			System.out.println("Run experiments");
-//			createTableWithExperiments();
+			// createTableWithExperiments();
 			runExperiments();
 		}
 	}
@@ -186,7 +187,7 @@ public class AutoMLExperimenter {
 
 					}
 					/* create objects for experiment */
-//					logger.info("Evaluate {} for dataset {} and seed {}", algorithmMode, datasetName, seed);
+					// logger.info("Evaluate {} for dataset {} and seed {}", algorithmMode, datasetName, seed);
 
 					MLPlan<IWekaClassifier> mlplan = builder.build();
 					mlplan.setLoggerName("mlplan");
@@ -256,7 +257,7 @@ public class AutoMLExperimenter {
 							this.logCandidateEvaluation("safeguard", e.getComponentInstance(), "Prevented execution", -1.0, -1.0, predictedFitTime, predictedPredictTime);
 						}
 
-						private void logCandidateEvaluation(final String status, final ComponentInstance ci, final String result, final Double actualFitTime, final Double actualPredictTime, final Double predictedFitTime,
+						private void logCandidateEvaluation(final String status, final IComponentInstance ci, final String result, final Double actualFitTime, final Double actualPredictTime, final Double predictedFitTime,
 								final Double predictedPredictTime) {
 							try {
 								Map<String, Object> map = new HashMap<>();

@@ -13,8 +13,9 @@ import ai.libs.jaicore.basic.kvstore.KVStoreCollection.EGroupMethod;
 import ai.libs.jaicore.basic.kvstore.KVStoreSequentialComparator;
 import ai.libs.jaicore.basic.kvstore.KVStoreStatisticsUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreUtil;
+import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 
 public class ResultTable {
 
@@ -22,7 +23,7 @@ public class ResultTable {
 
 	public static void main(final String[] args) {
 		DBC = (IDatabaseConfig) ConfigFactory.create(IDatabaseConfig.class).loadPropertiesFromFile(new File("automlexperimenter.properties"));
-		try (SQLAdapter adapter = new SQLAdapter(DBC)) {
+		try (IDatabaseAdapter adapter = DatabaseAdapterFactory.get(DBC)) {
 			KVStoreCollection safeguard1h = KVStoreUtil.readFromMySQLQuery(adapter, "SELECT * FROM cont_jobs_mlplan_safeguard_1h WHERE loss IS NOT NULL", new HashMap<>());
 			KVStoreCollection vanilla1h = KVStoreUtil.readFromMySQLQuery(adapter, "SELECT * FROM cont_jobs_mlplan_1h WHERE loss IS NOT NULL", new HashMap<>());
 
@@ -44,8 +45,8 @@ public class ResultTable {
 			KVStoreCollection grouped1h = merged1h.group(new String[] { "approach", "dataset", "timeout" }, groupMethod);
 			KVStoreCollection grouped24h = merged24h.group(new String[] { "approach", "dataset", "timeout" }, groupMethod);
 
-			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped1h, "dataset", "approach", "loss_list", "sig");
-			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped24h, "dataset", "approach", "loss_list", "sig");
+			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped1h, "dataset", "approach", "seed", "loss_list", "sig");
+			KVStoreStatisticsUtil.bestWilcoxonSignedRankTest(grouped24h, "dataset", "approach", "seed", "loss_list", "sig");
 
 			KVStoreCollection groupedAll = new KVStoreCollection();
 			groupedAll.addAll(grouped1h);

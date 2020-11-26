@@ -37,7 +37,7 @@ import ai.libs.jaicore.ml.weka.WekaUtil;
 import ai.libs.jaicore.ml.weka.classification.learner.IWekaClassifier;
 import ai.libs.jaicore.ml.weka.dataset.IWekaInstances;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
-import ai.libs.mlplan.multiclass.wekamlplan.weka.WekaPipelineFactory;
+import ai.libs.mlplan.weka.weka.WekaPipelineFactory;
 import tpami.safeguard.impl.MetaFeatureContainer;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
 import tpami.safeguard.util.MLComponentInstanceWrapper;
