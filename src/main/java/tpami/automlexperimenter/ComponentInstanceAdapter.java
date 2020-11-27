@@ -1,10 +1,12 @@
 package tpami.automlexperimenter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,7 +48,7 @@ public class ComponentInstanceAdapter {
 		ciMap.put(L_PARAM_VALUES, ci.getParameterValues());
 
 		Map<String, Object> satisfactionOfRequiredInterfaces = new HashMap<>();
-		ci.getSatisfactionOfRequiredInterfaces().entrySet().stream().forEach(x -> satisfactionOfRequiredInterfaces.put(x.getKey(), this.componentInstanceToMap(x.getValue())));
+		ci.getSatisfactionOfRequiredInterfaces().entrySet().stream().forEach(x -> satisfactionOfRequiredInterfaces.put(x.getKey(), this.componentInstanceToMap(x.getValue().get(0))));
 		ciMap.put(L_SAT_REQ_IFACE, satisfactionOfRequiredInterfaces);
 
 		return ciMap;
@@ -65,7 +67,7 @@ public class ComponentInstanceAdapter {
 
 	private ComponentInstance readComponentInstanceFromJson(final JsonNode node) throws JsonProcessingException {
 		String componentName = node.get(L_COMPONENT).get(L_NAME).asText();
-		Component component = this.components.stream().filter(x -> x.getName().equals(componentName)).findAny().get();
+		IComponent component = this.components.stream().filter(x -> x.getName().equals(componentName)).findAny().get();
 
 		Map<String, String> parameterValues = new HashMap<>();
 		Iterator<String> parameterValueIt = node.get(L_PARAM_VALUES).fieldNames();
@@ -74,12 +76,12 @@ public class ComponentInstanceAdapter {
 			parameterValues.put(fieldName, node.get(L_PARAM_VALUES).get(fieldName).asText());
 		}
 
-		Map<String, ComponentInstance> satisfactionOfRequiredInterfaces = new HashMap<>();
+		Map<String, List<IComponentInstance>> satisfactionOfRequiredInterfaces = new HashMap<>();
 		if (node.get(L_SAT_REQ_IFACE) != null) {
 			Iterator<String> satReqIfaceIt = node.get(L_SAT_REQ_IFACE).fieldNames();
 			while (satReqIfaceIt.hasNext()) {
 				String ifaceName = satReqIfaceIt.next();
-				satisfactionOfRequiredInterfaces.put(ifaceName, this.readComponentInstanceFromJson(node.get(L_SAT_REQ_IFACE).get(ifaceName)));
+				satisfactionOfRequiredInterfaces.put(ifaceName, Arrays.asList(this.readComponentInstanceFromJson(node.get(L_SAT_REQ_IFACE).get(ifaceName))));
 			}
 		}
 

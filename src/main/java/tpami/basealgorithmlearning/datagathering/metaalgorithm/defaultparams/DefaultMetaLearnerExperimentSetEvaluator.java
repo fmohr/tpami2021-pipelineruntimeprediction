@@ -396,7 +396,7 @@ public class DefaultMetaLearnerExperimentSetEvaluator implements IExperimentSetE
 			boolean otherFailedDueToTooFewInstances = errorMsg.contains("dataset has not sufficient datapoints");
 			if (requiresAtLeastAsManyPointsThanFailed && otherFailedDueToTooFewInstances) {
 				reasonString
-						.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " + datapoints + ").");
+				.set("This experiment requires at least as many instances as " + idOfOther + ", which failed because it demanded too many instances (" + numInstancesRequiredByOthers + ", and here we require " + datapoints + ").");
 				return true;
 			}
 			boolean otherTimedOut = errorMsg.contains("timeout");

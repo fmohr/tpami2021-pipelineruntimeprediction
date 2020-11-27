@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.ComponentUtil;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstanceUtil;
 import ai.libs.mlplan.safeguard.IEvaluationSafeGuard;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
@@ -117,7 +117,7 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 	public double predictInductionTime(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
 		Classifier model;
 		Instance i;
-		if (ComponentUtil.isDefaultConfiguration(ci)) {
+		if (ComponentInstanceUtil.isDefaultConfiguration(ci)) {
 			if (this.actualInductionTimeCache.containsKey(metaFeaturesTrain)) {
 				ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-IndBLCache");
 				double inductionTime = this.actualInductionTimeCache.get(metaFeaturesTrain);
@@ -139,7 +139,7 @@ public class BaseComponentEvaluationTimePredictor implements IBaseComponentEvalu
 	public double predictInferenceTime(final ComponentInstance ci, final MetaFeatureContainer metaFeaturesTrain) throws Exception {
 		Classifier model;
 		Instance i;
-		if (ComponentUtil.isDefaultConfiguration(ci)) {
+		if (ComponentInstanceUtil.isDefaultConfiguration(ci)) {
 			if (this.actualInferenceTimeCache.containsKey(metaFeaturesTrain)) {
 				ci.appendAnnotation(IEvaluationSafeGuard.ANNOTATION_SOURCE, "-InfBLCache");
 				double inferenceTime = this.actualInferenceTimeCache.get(metaFeaturesTrain);

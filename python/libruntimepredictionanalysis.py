@@ -39,13 +39,6 @@ def RDIST(A, F):
         s += np.abs(F[i] - A[i]) / np.min([F[i], A[i]])
     return s / n
 
-def getMeasureForDatasetClassifierPairs(datasets, classifiers, data, measure):
-    output = np.zeros((len(datasets), len(classifiers)))
-    for i, d in enumerate(datasets):
-        for j, c in enumerate(classifiers):
-            if type(data[i][j]) == list and len(data[i][j]) > 0:
-                output[i][j] = measure(data[i][j][0][0], data[i][j][0][1])
-    return output
 
 def getAllMetrics(datasets, classifiers, data_train, data_pred):
     metrics = {}

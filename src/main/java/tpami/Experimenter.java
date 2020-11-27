@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.aeonbits.owner.ConfigCache;
+import org.api4.java.ai.ml.classification.singlelabel.evaluation.ISingleLabelClassification;
 import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.evaluation.IPredictionAndGroundTruthTable;
@@ -50,7 +51,6 @@ public class Experimenter {
 	private static final Logger LOGGER = LoggerFactory.getLogger("example");
 
 	public static void main(final String[] args) throws Exception {
-
 		/* parse and interpret input */
 		final int k = Integer.parseInt(args[0]);
 		// for (int k = 0; k < 20; k++) {
@@ -164,7 +164,9 @@ public class Experimenter {
 
 				@Subscribe
 				public void receiveEvent(final TrainTestSplitEvaluationCompletedEvent e) throws SQLException { // this event is fired whenever any pipeline is evaluated successfully
-					double errorRate = EAggregatedClassifierMetric.MEAN_ERRORRATE.loss(Arrays.asList(e.getReport()).stream().map(r -> r.getPredictionDiffList()).collect(Collectors.toList()));
+					List<IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification>> l = Arrays.asList(e.getReport()).stream()
+							.map(r -> (IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification>) r.getPredictionDiffList()).collect(Collectors.toList());
+					double errorRate = EAggregatedClassifierMetric.MEAN_ERRORRATE.loss(l);
 					WekaClassifier learner = (WekaClassifier) e.getLearner();
 					if (learner.getClassifier() instanceof MLPipeline) {
 						MLPipeline pipeline = ((MLPipeline) ((WekaClassifier) e.getLearner()).getClassifier());
@@ -184,7 +186,9 @@ public class Experimenter {
 			/* evaluate solution produced by mlplan */
 			SupervisedLearnerExecutor executor = new SupervisedLearnerExecutor();
 			ILearnerRunReport report = executor.execute(mlplan.getSelectedClassifier(), split.get(1));
-			double errorRate = EAggregatedClassifierMetric.MEAN_ERRORRATE.loss(Arrays.asList(report).stream().map(r -> r.getPredictionDiffList()).collect(Collectors.toList()));
+			List<IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification>> l = Arrays.asList(report).stream()
+					.map(r -> (IPredictionAndGroundTruthTable<? extends Integer, ? extends ISingleLabelClassification>) r.getPredictionDiffList()).collect(Collectors.toList());
+			double errorRate = EAggregatedClassifierMetric.MEAN_ERRORRATE.loss(l);
 			LOGGER.info("Error Rate of the solution produced by ML-Plan: {}", errorRate);
 			Map<String, Object> map = new HashMap<>();
 			map.put("timeout", mlplan.getTimeout().seconds());
@@ -200,5 +204,5 @@ public class Experimenter {
 			}
 		}
 	}
-	// }
+
 }

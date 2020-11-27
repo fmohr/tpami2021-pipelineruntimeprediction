@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileReader;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,12 +20,13 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import ai.libs.hasco.model.Component;
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.ComponentUtil;
-import ai.libs.hasco.serialization.ComponentLoader;
 import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.api.IComponent;
+import ai.libs.jaicore.components.api.IComponentRepository;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentUtil;
+import ai.libs.jaicore.components.serialization.ComponentSerialization;
 import ai.libs.jaicore.ml.classification.loss.dataset.EClassificationPerformanceMeasure;
 import ai.libs.jaicore.ml.core.dataset.serialization.ArffDatasetAdapter;
 import ai.libs.jaicore.ml.core.dataset.serialization.OpenMLDatasetReader;
@@ -58,7 +60,7 @@ public class SafeGuardPredictionTest {
 	private static final int NUM_CPUS = 4;
 	private static final String[] META_LEARNERS = { Bagging.class.getName() };
 
-	private static ComponentLoader cl;
+	private static IComponentRepository cl;
 	private static SimpleHierarchicalRFSafeGuard safeGuard;
 
 	private static final int TEST_DATASET_ID = 41066;
@@ -68,7 +70,7 @@ public class SafeGuardPredictionTest {
 
 	@BeforeClass
 	public static void setup() throws Exception {
-		cl = new ComponentLoader(SEARCH_SPACE_CONFIG_FILE);
+		cl = new ComponentSerialization().deserializeRepository(SEARCH_SPACE_CONFIG_FILE);
 		long startTime = System.currentTimeMillis();
 		System.out.println("Instantiate safe guard...");
 		int[] excludeDatasetIDs = new int[] { 41066 };
@@ -108,7 +110,7 @@ public class SafeGuardPredictionTest {
 				continue;
 			}
 
-			Component comp = cl.getComponentWithName(store.getAsString("algorithm"));
+			IComponent comp = cl.getComponent(store.getAsString("algorithm"));
 			ComponentInstance ci = ComponentUtil.getDefaultParameterizationOfComponent(comp);
 			double relativeTrainSize = store.getAsDouble("fitsize") / store.getAsDouble("totalsize");
 			List<ILabeledDataset<?>> split = SplitterUtil.getLabelStratifiedTrainTestSplit(data, 0, relativeTrainSize);
@@ -145,21 +147,21 @@ public class SafeGuardPredictionTest {
 	@Test
 	public void testDefaultConfigurationPipeline() throws Exception {
 		// Classifier
-		ComponentInstance metaLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(AdaBoostM1.class.getName()));
-		ComponentInstance baseLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(J48.class.getName()));
-		metaLearner.getSatisfactionOfRequiredInterfaces().put("W", baseLearner);
+		ComponentInstance metaLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent(AdaBoostM1.class.getName()));
+		ComponentInstance baseLearner = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent(J48.class.getName()));
+		metaLearner.getSatisfactionOfRequiredInterfaces().put("W", Arrays.asList(baseLearner));
 
 		// Preprocessor
-		ComponentInstance preprocessor = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(AttributeSelection.class.getName()));
-		ComponentInstance searcher = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(GreedyStepwise.class.getName()));
-		ComponentInstance evaluator = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName(CfsSubsetEval.class.getName()));
-		preprocessor.getSatisfactionOfRequiredInterfaces().put("search", searcher);
-		preprocessor.getSatisfactionOfRequiredInterfaces().put("eval", evaluator);
+		ComponentInstance preprocessor = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent(AttributeSelection.class.getName()));
+		ComponentInstance searcher = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent(GreedyStepwise.class.getName()));
+		ComponentInstance evaluator = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent(CfsSubsetEval.class.getName()));
+		preprocessor.getSatisfactionOfRequiredInterfaces().put("search", Arrays.asList(searcher));
+		preprocessor.getSatisfactionOfRequiredInterfaces().put("eval", Arrays.asList(evaluator));
 
 		// Pipeline
-		ComponentInstance pipeline = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponentWithName("pipeline"));
-		pipeline.getSatisfactionOfRequiredInterfaces().put("preprocessor", preprocessor);
-		pipeline.getSatisfactionOfRequiredInterfaces().put("classifier", baseLearner);
+		ComponentInstance pipeline = ComponentUtil.getDefaultParameterizationOfComponent(cl.getComponent("pipeline"));
+		pipeline.getSatisfactionOfRequiredInterfaces().put("preprocessor", Arrays.asList(preprocessor));
+		pipeline.getSatisfactionOfRequiredInterfaces().put("classifier", Arrays.asList(baseLearner));
 
 		ILabeledDataset<?> dataset = ArffDatasetAdapter.readDataset(new File("car.arff"));
 		List<ILabeledDataset<?>> split = SplitterUtil.getLabelStratifiedTrainTestSplit(dataset, 0, .7);
@@ -235,7 +237,7 @@ public class SafeGuardPredictionTest {
 	}
 
 	private ComponentInstance sampleComponentInstance(final String requiredInterface, final long seed) {
-		List<ComponentInstance> components = (List<ComponentInstance>) ComponentUtil.getAllAlgorithmSelectionInstances(requiredInterface, cl.getComponents());
+		List<ComponentInstance> components = (List<ComponentInstance>) ComponentUtil.getAllAlgorithmSelectionInstances(requiredInterface, cl);
 		return components.get(new Random(seed).nextInt(components.size()));
 	}
 

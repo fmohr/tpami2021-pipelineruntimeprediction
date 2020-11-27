@@ -8,12 +8,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import ai.libs.hasco.model.CategoricalParameterDomain;
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.NumericParameterDomain;
-import ai.libs.hasco.model.Parameter;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.SetUtil;
+import ai.libs.jaicore.components.api.IParameter;
+import ai.libs.jaicore.components.model.CategoricalParameterDomain;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.NumericParameterDomain;
 import tpami.safeguard.api.IBaseComponentEvaluationTimePredictor;
 import tpami.safeguard.api.IMetaLearnerEvaluationTimePredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;
@@ -106,7 +106,7 @@ public class MetaLearnerEvaluationTimePredictor implements IMetaLearnerEvaluatio
 
 		Map<String, Object> paramValueMap = new HashMap<>();
 		for (String paramName : this.parameters) {
-			Parameter param = ci.getComponent().getParameterWithName(paramName);
+			IParameter param = ci.getComponent().getParameter(paramName);
 			if (param.getDefaultDomain() instanceof CategoricalParameterDomain) {
 				paramValueMap.put(paramName, ci.getParameterValue(paramName));
 			} else if (param.getDefaultDomain() instanceof NumericParameterDomain) {

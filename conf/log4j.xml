@@ -54,9 +54,26 @@
     <appender-ref ref="errFileAppender" />
   </logger>
   
+  <logger name="ai.libs.jaicore.ml.core.filter.FilterBasedDatasetSplitter">
+  	<level value="error" />
+  </logger>
+  
   <logger name="tpami">
     <level value="debug" />
     <appender-ref ref="console" />
+    <appender-ref ref="infoFileAppender" />
+    <appender-ref ref="warnFileAppender" />
+    <appender-ref ref="errFileAppender" />
+  </logger>
+  
+  <logger name="tpami.basealgorithmlearning">
+    <level value="info" />
+  </logger>
+  
+  <logger name="tester">
+	<level value="info" />
+	
+	<appender-ref ref="console" />
     <appender-ref ref="infoFileAppender" />
     <appender-ref ref="warnFileAppender" />
     <appender-ref ref="errFileAppender" />
@@ -71,7 +88,7 @@
   </logger>
   
   <logger name="ai.libs.jaicore.experiments">
-  	<level value="debug" />
+  	<level value="info" />
   </logger>
   
   <logger name="MLPlanCLI">
@@ -184,7 +201,7 @@
   
   <!-- configuration for ML-Plan Test logging -->
   <logger name="testedalgorithm">
-    <level value="trace" />
+    <level value="debug" />
     
     <appender-ref ref="console" />
     <appender-ref ref="infoFileAppender" />

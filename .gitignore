@@ -5,3 +5,6 @@
 /.project
 /logs/
 /build/
+/automlexperimenter.properties
+/data/
+/python/data/

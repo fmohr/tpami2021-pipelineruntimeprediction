@@ -1,6 +1,6 @@
 package tpami.safeguard.api;
 
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import tpami.safeguard.impl.MetaFeatureContainer;
 
 public interface IMetaFeatureTransformationPredictor {

@@ -1,6 +1,6 @@
 package tpami.safeguard.util;
 
-import ai.libs.hasco.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 
 public class MLComponentInstanceWrapper extends ComponentInstance {
 
@@ -26,14 +26,14 @@ public class MLComponentInstanceWrapper extends ComponentInstance {
 
 	public MLComponentInstanceWrapper getPreprocessor() {
 		if (this.isPipeline()) {
-			return new MLComponentInstanceWrapper(this.getSatisfactionOfRequiredInterfaces().get("preprocessor"));
+			return new MLComponentInstanceWrapper((ComponentInstance)this.getSatisfactionOfRequiredInterface("preprocessor").get(0));
 		}
 		return null;
 	}
 
 	public MLComponentInstanceWrapper getClassifier() {
 		if (this.isPipeline()) {
-			return new MLComponentInstanceWrapper(this.getSatisfactionOfRequiredInterfaces().get("classifier"));
+			return new MLComponentInstanceWrapper((ComponentInstance)this.getSatisfactionOfRequiredInterface("classifier").get(0));
 		} else {
 			return this;
 		}
@@ -45,7 +45,7 @@ public class MLComponentInstanceWrapper extends ComponentInstance {
 		} else if (this.isPipeline() && this.getClassifier().isMetaLearner()) {
 			return this.getClassifier().getBaseLearner();
 		} else if (this.getClassifier().isMetaLearner()) {
-			return new MLComponentInstanceWrapper(this.getSatisfactionOfRequiredInterfaces().get("W"));
+			return new MLComponentInstanceWrapper((ComponentInstance)this.getSatisfactionOfRequiredInterfaces().get("W"));
 		} else {
 			return this;
 		}

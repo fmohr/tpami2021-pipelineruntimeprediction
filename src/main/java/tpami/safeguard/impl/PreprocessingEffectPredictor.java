@@ -14,9 +14,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ai.libs.hasco.model.ComponentInstance;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.SetUtil;
+import ai.libs.jaicore.components.api.IComponentInstance;
+import ai.libs.jaicore.components.model.ComponentInstance;
 import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IMetaFeatureTransformationPredictor;
@@ -101,9 +102,9 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 		instance.setValue(i++, metaFeatureContainer.getFeature(EMetaFeature.NUM_ATTRIBUTES));
 
 		Map<String, Object> parameters = new HashMap<>();
-		Queue<ComponentInstance> queue = new LinkedList<>();
+		Queue<IComponentInstance> queue = new LinkedList<>();
 		queue.add(ci);
-		ComponentInstance element;
+		IComponentInstance element;
 		while ((element = queue.poll()) != null) {
 			for (Entry<String, String> parameterValue : element.getParameterValues().entrySet()) {
 				boolean succeeded = false;
@@ -132,11 +133,10 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 
 				if (!succeeded) {
 					parameters.put(parameterValue.getKey(), parameterValue.getValue());
-					succeeded = true;
 				}
 
 			}
-			element.getSatisfactionOfRequiredInterfaces().values().forEach(queue::add);
+			element.getSatisfactionOfRequiredInterfaces().values().forEach(l -> queue.add(l.get(0)));
 		}
 
 		for (String parameter : this.parameterAttributes) {
@@ -144,7 +144,6 @@ public class PreprocessingEffectPredictor implements IMetaFeatureTransformationP
 			if (value == null || value.equals("null")) {
 				LOGGER.warn("No parameter value for parameter {} for component {}.", parameter, this.componentName);
 				i++;
-				continue;
 			} else if (value instanceof String) {
 				instance.setValue(i++, (String) value);
 			} else {

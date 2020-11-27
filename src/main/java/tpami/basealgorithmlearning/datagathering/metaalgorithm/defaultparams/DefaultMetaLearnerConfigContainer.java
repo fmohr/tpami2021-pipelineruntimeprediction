@@ -6,7 +6,7 @@ import org.aeonbits.owner.ConfigFactory;
 
 import ai.libs.jaicore.db.IDatabaseAdapter;
 import ai.libs.jaicore.db.IDatabaseConfig;
-import ai.libs.jaicore.db.sql.SQLAdapter;
+import ai.libs.jaicore.db.sql.DatabaseAdapterFactory;
 import ai.libs.jaicore.experiments.IExperimentDatabaseHandle;
 import ai.libs.jaicore.experiments.databasehandle.ExperimenterMySQLHandle;
 
@@ -26,7 +26,7 @@ public class DefaultMetaLearnerConfigContainer {
 		/* setup database connection */
 		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class);
 		dbConfig.loadPropertiesFromFile(new File(databaseConfigFile));
-		this.adapter = new SQLAdapter(dbConfig);
+		this.adapter = DatabaseAdapterFactory.get(dbConfig);
 		this.databaseHandle = new ExperimenterMySQLHandle(this.adapter, "evaluations_metaclassifiers_" + classifierWorkingName);
 	}
 

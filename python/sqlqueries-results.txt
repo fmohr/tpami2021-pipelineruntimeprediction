@@ -1,0 +1,240 @@
+####### RESULT PREPARRATION (classifiers DEFAULT) ##########
+USE sqlrest_baselearners;
+SELECT openmlid, trainpoints as fitsize, seed, classifier as algorithm, traintime as fittime, testtime as applicationtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bayesnet' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_bayesnet` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'decisionstump' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_decisionstump` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'decisiontable' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_decisiontable` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ibk' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_ibk` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'j48' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_j48` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'jrip' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_jrip` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'kstar' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_kstar` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'lmt' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_lmt` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'logistic' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_logistic` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'm5p' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_m5p` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'multilayerperceptron' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_multilayerperceptron` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'naivebayes' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_naivebayes` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'naivebayesmultinomial' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_naivebayesmultinomial` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'oner' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_oner` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'part' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_part` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'randomforest' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_randomforest` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'randomtree' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_randomtree` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'reptree' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_reptree` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'simplelogistic' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_simplelogistic` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'smo' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_smo` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'votedperceptron' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_votedperceptron` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'zeror' as classifier, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_zeror` where time_end is not null
+) as t1
+INTO OUTFILE 'classifierresults-default.csv'       FIELDS TERMINATED BY ';' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+
+
+####### RESULT PREPARRATION (classifiers PARAMETRIZED) ##########
+USE sqlrest_baselearners;
+SELECT openmlid, trainpoints as fitsize, seed, algorithm, algorithmoptions, traintime as fittime, testtime as applicationtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bayesnet' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_bayesnet_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'decisiontable' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_decisiontable_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ibk' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_ibk_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'j48' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_j48_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'jrip' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_jrip_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'lmt' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_lmt_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'logistic' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_logistic_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'multilayerperceptron' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_multilayerperceptron_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'naivebayes' as algorithm, algorithmoptions,TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_naivebayes_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'oner' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_oner_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'part' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_part_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'randomforest' as algorithm, algorithmoptions,TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_randomforest_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'randomtree' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_randomtree_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'reptree' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_reptree_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'simplelogistic' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_simplelogistic_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'smo' as algorithm, algorithmoptions, TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_smo_configured` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'votedperceptron' as algorithm, algorithmoptions,TIMESTAMPDIFF(SECOND, train_start, train_end) as traintime, TIMESTAMPDIFF(SECOND, test_start, test_end) as testtime, exception FROM `evaluations_classifiers_votedperceptron_configured` where time_end is not null
+) as t1
+INTO OUTFILE 'classifierresults-parametrized.csv'       FIELDS TERMINATED BY ';' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+
+
+
+
+## Results PRE-PROCESSORS (DEFAULT) ##
+USE sqlrest_baselearners;
+SELECT openmlid, trainpoints as fitsize, numattributes_before as numattributes, seed, algorithm, fittime, applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bestfirst_cfssubseteval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_BestFirst_CfsSubsetEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'greedystepwise_cfssubseteval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_GreedyStepwise_CfsSubsetEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_correlationattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_CorrelationAttributeEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_gainratioattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_GainRatioAttributeEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_infogainattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_InfoGainAttributeEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_onerattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_OneRAttributeEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_principalcomponents' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_PrincipalComponents` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_relieffattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_ReliefFAttributeEval` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_symmetricaluncertattributeeval' as algorithm, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_preprocessors_Ranker_SymmetricalUncertAttributeEval` where time_end is not null
+) as t1
+INTO OUTFILE 'preprocessorresults-default.csv'       FIELDS TERMINATED BY ';' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+
+
+
+
+
+## Results PRE-PROCESSORS (PARAMETRIZED) ##
+USE sqlrest_preprocessors;
+SELECT openmlid, trainpoints as fitsize, numattributes_before as numattributes, seed, algorithm, searcheroptions, evaloptions, fittime, applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, replace(replace(exception, "\n", "\\n"), "\"", "") as exception
+   FROM (
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'bestfirst_cfssubseteval' as algorithm, CONCAT("-D ", bf_d, " -N ", bf_n,  " -S ", bf_s) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_BestFirst_CfsSubsetEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'greedystepwise_cfssubseteval' as algorithm, CONCAT("-C ", gsw_c, " -B ", gsw_b,  " -N ", gsw_N) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_GreedyStepwise_CfsSubsetEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_correlationattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, "" as evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_CorrelationAttributeEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_gainratioattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, "" as evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_GainRatioAttributeEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_infogainattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_InfoGainAttributeEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_onerattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_OneRAttributeEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_principalcomponents' as algorithm, concat("-N ", rankern) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_PrincipalComponents_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_relieffattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_ReliefFAttributeEval_c` where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, 'ranker_symmetricaluncertattributeeval' as algorithm, concat("-N ", rankern) as searcheroptions, evaloptions, TIMESTAMPDIFF(SECOND, time_alg_start, time_alg_end) as fittime, TIMESTAMPDIFF(SECOND, time_alg_apply_start, time_alg_apply_end) as applicationtime, numinstances_before, numattributes_before, numlabels_before, numnumericattributes_before, numsymbolicattributes_before, numberofcategories_before, numericattributesafterbinarization_before, attributestocover50pctvariance_before, attributestocover90pctvariance_before, attributestocover95pctvariance_before, attributestocover99pctvariance_before, totalvariance_before, numinstances_after, numattributes_after, numlabels_after, numnumericattributes_after, numsymbolicattributes_after, numberofcategories_after,  numericattributesafterbinarization_after, attributestocover50pctvariance_after, attributestocover90pctvariance_after, attributestocover95pctvariance_after, attributestocover99pctvariance_after, totalvariance_after, exception FROM `evaluations_pp_Ranker_SymmetricalUncertAttributeEval_c` where time_end is not null
+) as t1
+INTO OUTFILE 'preprocessorresults-parametrized.csv'       FIELDS TERMINATED BY ';' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+
+
+## Results Meta-Learner (default) ##
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, algorithm, baselearner, TIMESTAMPDIFF(SECOND, train_start, train_end) as fittime, TIMESTAMPDIFF(SECOND, test_start, test_end) as applicationtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception FROM (
+SELECT experiment_id, openmlid, datapoints, seed, 'adaboostm1' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_adaboostm1 where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'bagging' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_bagging where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'randomcommittee' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_randomcommittee where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'randomsubspace' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_randomsubspace where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'logitboost' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_logitboost where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'lwl' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_lwl where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'classificationviaregression' as algorithm, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_classificationviaregression where time_end is not null) as t
+
+## Results Meta-Learner (parametrized) ##
+SELECT experiment_id, openmlid, datapoints as trainpoints, seed, algorithm, algorithmoptions, baselearner, TIMESTAMPDIFF(SECOND, train_start, train_end) as fittime, TIMESTAMPDIFF(SECOND, test_start, test_end) as applicationtime, replace(replace(exception, "\n", "\\n"), "\"", "") as exception FROM (
+SELECT experiment_id, openmlid, datapoints, seed, 'adaboostm1-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_adaboostm1_configured where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'bagging-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_bagging_configured where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'logitboost-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_logitboost_configured where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'lwl-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_lwl_configured where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'randomcommittee-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_randomcommittee_configured where time_end is not null
+UNION
+SELECT experiment_id, openmlid, datapoints, seed, 'randomsubspace-p' as algorithm, algorithmoptions, baselearner, train_start, train_end, test_start, test_end, exception  FROM evaluations_metaclassifiers_randomsubspace_configured where time_end is not null
+) as t
+
+
+
+### Addition Information for meta-learners (default)
+SELECT *, "adaboostm1" as algorithm FROM `additional_information_adaboostm1`
+UNION
+SELECT *, "bagging" as algorithm FROM `additional_information_bagging`
+UNION
+SELECT *, "randomcommittee" as algorithm FROM `additional_information_randomcommittee`
+UNION
+SELECT *, "randomsubspace" as algorithm FROM `additional_information_randomsubspace`
+UNION
+SELECT *, "logitboost" as algorithm FROM `additional_information_logitboost`
+UNION
+SELECT *, "lwl" as algorithm FROM `additional_information_lwl`
+UNION
+SELECT *, "classificationviaregression" as algorithm FROM `additional_information_classificationviaregression`
+
+
+### Addition Information for meta-learners (parametrized)
+SELECT *, "adaboostm1" as algorithm FROM `additional_information_adaboostm1` where info_id > 150929
+UNION
+SELECT *, "bagging" as algorithm FROM `additional_information_bagging` where info_id > 185560
+UNION
+SELECT *, "randomcommittee" as algorithm FROM `additional_information_randomcommittee` where info_id  > 27870
+UNION
+SELECT *, "randomsubspace" as algorithm FROM `additional_information_randomsubspace` where info_id  > 28700
+UNION
+SELECT *, "logitboost" as algorithm FROM `additional_information_logitboost` where info_id  > 169090
+
+## ACTIVE JOBS VIew:
+SELECT *, TIMESTAMPDIFF(SECOND, time_started, NOW()) as walltime FROM (
+    select 'adaboost' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_adaboostm1` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'bagging' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_bagging` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'randomcommittee' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_randomcommittee` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'randomsubspace' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_randomsubspace` where `time_started` is not null and `time_end` IS NULL
+   union
+    select 'logitboost' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_logitboost` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'lwl' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_lwl` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'cvr' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_classificationviaregression` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'adaboost-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_adaboostm1_configured` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'bagging-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_bagging_configured` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'logitboost-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_logitboost_configured` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'lwl-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_lwl_configured` where `time_started` is not null and `time_end` IS NULL
+     union
+    select 'randomcommittee-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_randomcommittee_configured` where `time_started` is not null and `time_end` IS NULL
+    union
+    select 'randomsubspace-p' as algorithm, experiment_id, openmlid, datapoints, seed, baselearner, executordetails, time_started from  `evaluations_metaclassifiers_randomsubspace_configured` where `time_started` is not null and `time_end` IS NULL
+) as t
+    

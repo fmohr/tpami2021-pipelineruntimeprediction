@@ -1,6 +1,7 @@
 package tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -16,6 +17,7 @@ public class LeakingBaselearnerEvent {
 	private Exception exception = null;
 
 	public LeakingBaselearnerEvent(final ELeakingBaselearnerEventType eventType, final LeakingBaselearnerWrapper leakingBaselearnerWrapper, final boolean metaLearnerIsTrained) {
+		Objects.requireNonNull(leakingBaselearnerWrapper);
 		this.eventType = eventType;
 		this.timestamp = DataGatheringUtil.getCurrentFormattedTimestamp();
 		this.leakingBaselearnerWrapper = leakingBaselearnerWrapper;

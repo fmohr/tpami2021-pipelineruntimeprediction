@@ -3,6 +3,7 @@ package tpami.safeguard;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,11 +14,13 @@ import org.aeonbits.owner.ConfigFactory;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ai.libs.hasco.model.ComponentInstance;
-import ai.libs.hasco.model.ComponentUtil;
-import ai.libs.hasco.serialization.ComponentLoader;
 import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
+import ai.libs.jaicore.components.api.IComponentInstance;
+import ai.libs.jaicore.components.api.IComponentRepository;
+import ai.libs.jaicore.components.model.ComponentInstance;
+import ai.libs.jaicore.components.model.ComponentUtil;
+import ai.libs.jaicore.components.serialization.ComponentSerialization;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.impl.BaseComponentEvaluationTimePredictor;
@@ -37,11 +40,11 @@ public class MetaLearnerEffectPredictorTest {
 
 	private static final ISimpleHierarchicalRFSafeGuardConfig CONFIG = ConfigFactory.create(ISimpleHierarchicalRFSafeGuardConfig.class);
 
-	private static ComponentLoader cl;
+	private static IComponentRepository cl;
 
 	@BeforeClass
 	public static void setup() throws IOException {
-		cl = new ComponentLoader(new ResourceFile("automl/searchmodels/weka/weka-all-autoweka.json"));
+		cl = new ComponentSerialization().deserializeRepository(new ResourceFile("automl/searchmodels/weka/weka-all-autoweka.json"));
 	}
 
 	@Test
@@ -71,27 +74,27 @@ public class MetaLearnerEffectPredictorTest {
 	}
 
 	private ComponentInstance getInstance(final String name, final Random rand) {
-		ComponentInstance bci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(J48.class.getName()), rand);
+		IComponentInstance bci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(J48.class.getName()), rand);
 
 		ComponentInstance ci = null;
 		switch (name) {
 		case "adaboostm1":
-			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(AdaBoostM1.class.getName()), rand);
+			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(AdaBoostM1.class.getName()), rand);
 			break;
 		case "bagging":
-			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(Bagging.class.getName()), rand);
+			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(Bagging.class.getName()), rand);
 			break;
 		case "logitboost":
-			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(LogitBoost.class.getName()), rand);
+			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(LogitBoost.class.getName()), rand);
 			break;
 		case "randomcommittee":
-			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(RandomCommittee.class.getName()), rand);
+			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(RandomCommittee.class.getName()), rand);
 			break;
 		case "randomsubspace":
-			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponentWithName(RandomSubSpace.class.getName()), rand);
+			ci = ComponentUtil.getRandomParameterizationOfComponent(cl.getComponent(RandomSubSpace.class.getName()), rand);
 			break;
 		}
-		ci.getSatisfactionOfRequiredInterfaces().put("W", bci);
+		ci.getSatisfactionOfRequiredInterfaces().put("W", Arrays.asList(bci));
 		return ci;
 	}
 
