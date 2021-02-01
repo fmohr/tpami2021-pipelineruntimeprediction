@@ -9,7 +9,7 @@ public class BaseLearnerTableSetup {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
 			System.out.println(baseLearner);
-			if (!baseLearner.contains("weka.classifiers.bayes.NaiveBayes")) {
+			if (!baseLearner.contains("weka.classifiers.rules.OneR")) {
 				continue;
 			}
 
@@ -17,7 +17,7 @@ public class BaseLearnerTableSetup {
 			BaseLearnerConfigContainer container = new BaseLearnerConfigContainer("conf/dbcon-local.conf", baseLearner);
 			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getExperimentSetConfig(), container.getDatabaseHandle());
 			preparer.setLoggerName("example");
-			preparer.installSubGridOfExperiments(100000);
+			preparer.synchronizeExperiments();//.installSubGridOfExperiments(100000);
 		}
 	}
 }

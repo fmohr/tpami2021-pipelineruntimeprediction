@@ -23,6 +23,7 @@ import org.junit.Test;
 import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.components.api.IComponent;
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.api.IComponentRepository;
 import ai.libs.jaicore.components.model.ComponentInstance;
 import ai.libs.jaicore.components.model.ComponentUtil;
@@ -210,7 +211,7 @@ public class SafeGuardPredictionTest {
 	@Ignore
 	@Test
 	public void testDefaultConfigBaselearnerPrediction() throws Exception {
-		ComponentInstance baselearner = this.sampleBaselearner(11);
+		IComponentInstance baselearner = this.sampleBaselearner(11);
 		MetaFeatureContainer mf = new MetaFeatureContainer(100, 10);
 		System.out.println("Default Config Base Learner Prediction: " + safeGuard.predictInductionTime(new MLComponentInstanceWrapper(baselearner), mf));
 	}
@@ -218,7 +219,7 @@ public class SafeGuardPredictionTest {
 	@Ignore
 	@Test
 	public void testDefaultConfigPreprocessorPrediction() throws Exception {
-		ComponentInstance preprocessor = this.samplePreprocessor(0);
+		IComponentInstance preprocessor = this.samplePreprocessor(0);
 		MetaFeatureContainer mf = new MetaFeatureContainer(100, 10);
 		System.out.println(preprocessor);
 		System.out.println("Preprocessor: " + safeGuard.predictInductionTime(new MLComponentInstanceWrapper(preprocessor), mf));
@@ -228,16 +229,16 @@ public class SafeGuardPredictionTest {
 		return null;
 	}
 
-	private ComponentInstance sampleBaselearner(final long seed) {
+	private IComponentInstance sampleBaselearner(final long seed) {
 		return this.sampleComponentInstance("BaseClassifier", seed);
 	}
 
-	private ComponentInstance samplePreprocessor(final long seed) {
+	private IComponentInstance samplePreprocessor(final long seed) {
 		return this.sampleComponentInstance("AbstractPreprocessor", seed);
 	}
 
-	private ComponentInstance sampleComponentInstance(final String requiredInterface, final long seed) {
-		List<ComponentInstance> components = (List<ComponentInstance>) ComponentUtil.getAllAlgorithmSelectionInstances(requiredInterface, cl);
+	private IComponentInstance sampleComponentInstance(final String requiredInterface, final long seed) {
+		List<IComponentInstance> components = (List<IComponentInstance>) ComponentUtil.getAllAlgorithmSelectionInstances(requiredInterface, cl);
 		return components.get(new Random(seed).nextInt(components.size()));
 	}
 

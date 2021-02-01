@@ -23,8 +23,8 @@ public class ClassifierExperimentEvaluator extends ALearnerExperimentEvaluator {
 	}
 
 	@Override
-	public IClassifier getClassifier(final String[] options) throws Exception {
-		return new WekaClassifier(AbstractClassifier.forName(Class.forName(this.classifierName).getName(), options));
+	public IClassifier getClassifier(final String optionString) throws Exception {
+		return new WekaClassifier(AbstractClassifier.forName(Class.forName(this.classifierName).getName(), optionString.split(" ")));
 	}
 
 	@Override

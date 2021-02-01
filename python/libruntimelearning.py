@@ -15,7 +15,6 @@ import os.path
 from os import path
 from itertools import chain, combinations
 from commons import *
-from tqdm import tqdm_notebook as tqdm
 
 ########################
 ## Feature Expansions ##

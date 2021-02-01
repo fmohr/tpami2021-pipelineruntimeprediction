@@ -38,7 +38,7 @@ public class PreprocessingEffectPredictorTest extends APreprocessingPredictorTes
 			System.out.println(preprocessor);
 			KVStoreCollection data = getData(preprocessor);
 
-			Instances dataset = new Instances(new FileReader("car.arff"));
+			Instances dataset = new Instances(new FileReader("testrsc/car.arff"));
 			dataset.setClassIndex(dataset.numAttributes() - 1);
 
 			PreprocessingEffectPredictor pred = new PreprocessingEffectPredictor(preprocessor, data);
@@ -55,7 +55,7 @@ public class PreprocessingEffectPredictorTest extends APreprocessingPredictorTes
 			System.out.println(preprocessor);
 			KVStoreCollection data = getData(preprocessor);
 
-			Instances dataset = new Instances(new FileReader("car.arff"));
+			Instances dataset = new Instances(new FileReader("testrsc/car.arff"));
 			dataset.setClassIndex(dataset.numAttributes() - 1);
 
 			PreprocessingEffectPredictor pred = new PreprocessingEffectPredictor(preprocessor, data);

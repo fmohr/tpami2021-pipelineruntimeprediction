@@ -1,0 +1,36 @@
+{
+	"repository": "weka.classifiers.meta.RandomCommittee",
+	"include": [],
+	"components": [
+		{
+			"name": "weka.classifiers.meta.RandomCommittee",
+			"requiredInterface": [
+				{
+					"id": "W",
+					"name": "RandomizableBaseClassifier"
+				}
+			],
+			"providedInterface": [
+				"AbstractClassifier",
+				"Classifier",
+				"MetaClassifier",
+				"AbstractRegressor",
+				"Regressor",
+				"MetaRegressor",
+				"WeightedInstancesHandler"
+			],
+			"parameters": [
+				{
+					"name": "I",
+					"type": "int",
+					"default": 10.0,
+					"min": 2.0,
+					"max": 64.0,
+					"refineSplits": 8,
+					"minInterval": 10
+				}
+			],
+			"dependencies": []
+		}
+	]
+}

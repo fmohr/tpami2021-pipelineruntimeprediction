@@ -18,7 +18,7 @@ import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.basic.sets.SetUtil;
 import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.ComponentInstance;
-import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
+import tpami.basealgorithmlearning.datagathering.DatasetVarianceFeatureGenerator;
 import tpami.safeguard.api.EMetaFeature;
 import tpami.safeguard.api.IMetaFeatureTransformationPredictor;
 import tpami.safeguard.util.DataBasedComponentPredictorUtil;

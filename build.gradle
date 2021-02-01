@@ -45,9 +45,10 @@ dependencies {
 	testCompile group: 'junit', name: 'junit', version: '4.12'
 	compile group: 'org.nd4j', name: 'nd4j-api', version: '1.0.0-beta2'
 	compile "org.nd4j:nd4j-native-platform:1.0.0-beta6"
+	compile "org.apache.commons:commons-math3:3.6.1"
 	compile name: 'SMOTE-1.0.3'
-	//compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6'
-	//compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2'
+	compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta6' // this is required by the pre-processors
+	compile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.9.2' // this is required by deeplearning somehow
 }
 
 repositories {
@@ -68,17 +69,6 @@ task dsproviderJar(type: Jar) {
     }
     zip64 = true
     baseName = 'dsprovider'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    with jar
-}
-
-task evaluationFatJar(type: Jar) {
-    manifest {
-		attributes 'Main-Class': 'ecml.Experimenter'
-    }
-    zip64 = true
-    baseName = 'ecml2018-experimenter'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar
@@ -117,6 +107,17 @@ task preprocessorsMeasurementsJar(type: Jar) {
     with jar
 }
 
+task parametrizedPreprocessorsMeasurementsJar(type: Jar) {
+    manifest {
+		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.preprocessing.parametrized.ParametrizedPreprocessingExperimenter'
+    }
+    zip64 = true
+    baseName = 'parametrizedpreprocessorexecutor'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    with jar
+}
+
 task metalearnerExpJar(type: Jar) {
     manifest {
 		attributes 'Main-Class': 'tpami.basealgorithmlearning.datagathering.metaalgorithm.defaultparams.DefaultMetaLearnerExperimenter'
@@ -128,12 +129,12 @@ task metalearnerExpJar(type: Jar) {
     with jar
 }
 
-task regressionBuilderJar(type: Jar) {
+task pipelineEvaluatorJar(type: Jar) {
     manifest {
-		attributes 'Main-Class': 'tpami.basealgorithmlearning.regression.LogDatasetToRegressionDatasetConverter'
+		attributes 'Main-Class': 'tpami.pipelinemeasurement.parametrized.PipelineEvaluationExecutor'
     }
     zip64 = true
-    baseName = 'regressionbuilder'
+    baseName = 'pipelineevaluator'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar

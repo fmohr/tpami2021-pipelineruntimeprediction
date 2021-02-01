@@ -1,11 +1,12 @@
 package tpami.safeguard.util;
 
+import ai.libs.jaicore.components.api.IComponentInstance;
 import ai.libs.jaicore.components.model.ComponentInstance;
 
 public class MLComponentInstanceWrapper extends ComponentInstance {
 
-	public MLComponentInstanceWrapper(final ComponentInstance ci) {
-		super(ci);
+	public MLComponentInstanceWrapper(final IComponentInstance ci) {
+		super((ComponentInstance)ci);
 	}
 
 	public boolean isPreprocessor() {
@@ -26,14 +27,14 @@ public class MLComponentInstanceWrapper extends ComponentInstance {
 
 	public MLComponentInstanceWrapper getPreprocessor() {
 		if (this.isPipeline()) {
-			return new MLComponentInstanceWrapper((ComponentInstance)this.getSatisfactionOfRequiredInterface("preprocessor").get(0));
+			return new MLComponentInstanceWrapper(this.getSatisfactionOfRequiredInterface("preprocessor").get(0));
 		}
 		return null;
 	}
 
 	public MLComponentInstanceWrapper getClassifier() {
 		if (this.isPipeline()) {
-			return new MLComponentInstanceWrapper((ComponentInstance)this.getSatisfactionOfRequiredInterface("classifier").get(0));
+			return new MLComponentInstanceWrapper(this.getSatisfactionOfRequiredInterface("classifier").get(0));
 		} else {
 			return this;
 		}

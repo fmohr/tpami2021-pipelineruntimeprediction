@@ -11,13 +11,14 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.api4.java.ai.ml.core.dataset.schema.attribute.INumericAttribute;
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.ai.ml.core.exception.TrainingException;
 import org.api4.java.algorithm.Timeout;
 import org.api4.java.algorithm.exceptions.AlgorithmTimeoutedException;
+import org.api4.java.common.control.ILoggingCustomizable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,15 +28,10 @@ import ai.libs.jaicore.experiments.IExperimentIntermediateResultProcessor;
 import ai.libs.jaicore.experiments.IExperimentSetEvaluator;
 import ai.libs.jaicore.experiments.exceptions.ExperimentEvaluationFailedException;
 import ai.libs.jaicore.experiments.exceptions.ExperimentFailurePredictionException;
-import ai.libs.jaicore.ml.core.dataset.Dataset;
-import ai.libs.jaicore.ml.core.dataset.DatasetUtil;
-import ai.libs.jaicore.ml.core.dataset.serialization.OpenMLDatasetReader;
 import ai.libs.jaicore.timing.TimedComputation;
 import tpami.basealgorithmlearning.IConfigContainer;
-import tpami.basealgorithmlearning.regression.BasicDatasetFeatureGenerator;
-import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
 
-public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetEvaluator {
+public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetEvaluator, ILoggingCustomizable {
 
 	private static final String DATE_FORMAT = "YYYY-MM-dd HH:mm:ss";
 	private final Timeout to;
@@ -66,7 +62,7 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 
 	// public abstract IClassifier getClassifier() throws Exception;
 
-	public abstract void fit(ILabeledDataset<?> trainData, String[] options, IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException;
+	public abstract void fit(ILabeledDataset<?> trainData, String optionString, IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException;
 
 	public abstract DescriptiveStatistics apply(ILabeledDataset<?> applicationData, int goalTestPoints, IExperimentIntermediateResultProcessor processor, SimpleDateFormat format) throws ExperimentEvaluationFailedException;
 
@@ -79,9 +75,10 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 		metaFeatures.putAll(MGENERATOR_BASIC.getFeatureRepresentation(data));
 		metaFeatures.putAll(MGENERATOR_VARIANCE.getFeatureRepresentation(data));
 		List<String> relevantFeatures = Arrays.asList("totalvariance", "numberofcategories", "numericattributesafterbinarization", "numattributes", "numsymbolicattributes", "attributestocover90pctvariance", "numinstances",
-				"attributestocover99pctvariance", "attributestocover50pctvariance", "numlabels", "numnumericattributes", "attributestocover95pctvariance");
+				"attributestocover99pctvariance", "attributestocover50pctvariance", "numlabels", "numnumericattributes", "attributestocover95pctvariance").stream().map(s -> s + suffix).collect(Collectors.toList());
 		for (String key : new ArrayList<>(metaFeatures.keySet())) {
 			if (!relevantFeatures.contains(key)) {
+				this.logger.debug("Removing irrelevant attribute {}", key);
 				metaFeatures.remove(key);
 			}
 		}
@@ -91,13 +88,13 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 	@Override
 	public void evaluate(final ExperimentDBEntry experimentEntry, final IExperimentIntermediateResultProcessor processor) throws ExperimentEvaluationFailedException, ExperimentFailurePredictionException, InterruptedException {
 
-		this.logger.info("Reading in experiment.");
+		this.logger.info("Executing experiment #{}.", experimentEntry.getId());
 		Map<String, String> keys = experimentEntry.getExperiment().getValuesOfKeyFields();
 		int seed = Integer.parseInt(keys.get("seed"));
 		int openmlid = Integer.parseInt(keys.get("openmlid"));
 		int datapoints = Integer.parseInt(keys.get("datapoints"));
 		int attributes = Integer.parseInt(keys.get("attributes"));
-		String[] options = keys.get("algorithmoptions").split(" ");
+		String options = keys.containsKey("algorithmoptions") ? keys.get("algorithmoptions") : "";
 
 		/* load dataset and create classifier */
 		this.logger.info("Running {} on dataset {} with seed {} and {} data points and {} attributes.", this.getNameOfEvaluatedAlgorithm(), openmlid, seed, datapoints, attributes);
@@ -127,40 +124,43 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 			}
 
 			/* load dataset */
-			Dataset ds = (Dataset) OpenMLDatasetReader.deserializeDataset(openmlid);
+			// OpenmlConnector con = new OpenmlConnector();
+			// DataQuality quality = con.dataQualities(openmlid, 1);
+			// int numFeatures = quality.getQualitiesMap().get("NumberOfFeatures").intValue() - 1;
+			// List<Integer> ignoreColumns = numFeatures > attributes ? SetUtil.getRandomSetOfIntegers(numFeatures, numFeatures - attributes, new Random(seed)) : Arrays.asList();
+			// WekaInstances ds = this.util.getDatasetWithReducedNumberOfColumnsForGivenNumberOfTotalInstances(openmlid, datapoints + GOAL_TESTPOINTS);
 
 			/* check whether the experiment is feasible */
-			int dataMatrixSize = ds.getNumAttributes() * (datapoints + GOAL_TESTPOINTS);
-			int numEntriesOriginal = ds.size() * ds.getNumAttributes();
-			this.logger.info("Original dataset has format {}x{} = {} entries. Experiment data matrix will have ({}+{})x{} = {} entries.", ds.size(), ds.getNumAttributes(), numEntriesOriginal, datapoints, GOAL_TESTPOINTS,
-					ds.getNumAttributes(), dataMatrixSize);
-
-			/* convert dataset to classification if necessary */
-			if (ds.getLabelAttribute() instanceof INumericAttribute) {
-				this.logger.info("Converting numeric dataset to classification dataset!");
-				ds = (Dataset) DatasetUtil.convertToClassificationDataset(ds);
-			}
-
-			/* check whether the dataset is reproducible */
-			if (ds.getConstructionPlan().getInstructions().isEmpty()) {
-				throw new IllegalStateException("Construction plan for dataset is empty!");
-			}
+			// int dataMatrixSize = attributes * (datapoints + GOAL_TESTPOINTS);
+			// int numEntriesOriginal = ds.size() * ds.getNumAttributes();
+			// this.logger.info("Original dataset has format {}x{} = {} entries. Experiment data matrix will have ({}+{})x{} = {} entries.", ds.size(), ds.getNumAttributes(), numEntriesOriginal, datapoints, GOAL_TESTPOINTS,
+			// attributes, dataMatrixSize);
+			//
+			// /* convert dataset to classification if necessary */
+			// if (ds.getLabelAttribute() instanceof INumericAttribute) {
+			// this.logger.info("Converting numeric dataset to classification dataset!");
+			// ds = (WekaInstances)(DatasetUtil.convertToClassificationDataset(ds));
+			// }
+			//
+			// /* check whether the dataset is reproducible */
+			// if (ds.getConstructionPlan().getInstructions().isEmpty()) {
+			// throw new IllegalStateException("Construction plan for dataset is empty!");
+			// }
 			int goalTestPoints = GOAL_TESTPOINTS;
-			if (dataMatrixSize > 5 * Math.pow(10, 8) && numEntriesOriginal < dataMatrixSize) {
-				this.logger.warn("Would have to blow-up the dataset to a size of {}, which exceeds the 5*10^8 and hence will not be permitted. Trying to find a smaller test point size.", dataMatrixSize);
-				int numDataPointsThatAreAvavilableForTraining = ExperimentUtil.getMaximumInstancesManagableForDataset(ds) - datapoints;
-				if (numDataPointsThatAreAvavilableForTraining > 100) {
-					goalTestPoints = numDataPointsThatAreAvavilableForTraining;
-					this.logger.warn("Adjusting number of test points to {}", numDataPointsThatAreAvavilableForTraining);
-				} else if (ds.size() - datapoints >= 100) {
-					this.logger.info("We have enough original datapoints to provide {} test cases. We will fall back to these.", ds.size() - datapoints);
-					goalTestPoints = ds.size() - datapoints;
-				} else {
-					this.logger.error("Cannot fit the required datapoints here! Best size for goal test points is {}, which is too few.", numDataPointsThatAreAvavilableForTraining);
-					throw new IllegalStateException("Experiment dataset would become too large.");
-				}
+			if (datapoints * attributes > 3 * Math.pow(10, 8)) {
+				// this.logger.warn("Would have to blow-up the dataset to a size of {}, which exceeds the 5*10^8 and hence will not be permitted. Trying to find a smaller test point size.", dataMatrixSize);
+				// int numDataPointsThatAreAvavilableForTesting = ExperimentUtil.get - datapoints;
+				// if (numDataPointsThatAreAvavilableForTesting > 100) {
+				// goalTestPoints = numDataPointsThatAreAvavilableForTesting;
+				// this.logger.warn("Adjusting number of test points to {}", numDataPointsThatAreAvavilableForTesting);
+				// } else if (ds.size() - datapoints >= 100) {
+				// this.logger.info("We have enough original datapoints to provide {} test cases. We will fall back to these.", ds.size() - datapoints);
+				// goalTestPoints = ds.size() - datapoints;
+				// } else {
+				throw new IllegalStateException("Experiment dataset would become too large.");
+				// }
 			}
-			splitTmp = this.util.createSizeAdjustedTrainTestSplit(ds, openmlid, datapoints, goalTestPoints, attributes, new Random(seed));
+			splitTmp = this.util.createSizeAdjustedTrainTestSplit(openmlid, datapoints, goalTestPoints, attributes, new Random(seed));
 
 			/* analyze and write meta-features of dataset */
 			this.logger.info("Dataset dimension are {}x{} for training and {}x{} for testing", splitTmp.get(0).size(), splitTmp.get(0).getNumAttributes(), splitTmp.get(1).size(), splitTmp.get(1).getNumAttributes());
@@ -173,15 +173,18 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 
 		/* now train classifier */
 		SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
-		this.logger.info("Start learning.");
-		Map<String, Object> map = new HashMap<>();
 
+		ILabeledDataset<?> traindata = split.get(0);
+		Runtime runtime = Runtime.getRuntime();
+		this.logger.info("Start learning on {} x {} instance of {}. Memory statistics: {}MB allocated, {}MB free.", traindata.size(), traindata.getNumAttributes(), openmlid, runtime.totalMemory() / (1024 * 1024),
+				runtime.freeMemory() / (1024 * 1024));
+		Map<String, Object> map = new HashMap<>();
 		long tsTrainStart = System.currentTimeMillis();
 		map.put("train_start", format.format(new Date(tsTrainStart)));
 		try {
 			this.mobs.reset();
 			TimedComputation.compute(() -> {
-				this.fit(split.get(0), options, processor);
+				this.fit(traindata, options, processor);
 				return null;
 			}, new Timeout(this.to.milliseconds(), TimeUnit.MILLISECONDS), "Experiment timeout exceeded.");
 			this.logger.info("Stopped learning.");
@@ -285,5 +288,16 @@ public abstract class AMLAlgorithmExperimentEvaluator implements IExperimentSetE
 
 	public IConfigContainer getContainer() {
 		return this.container;
+	}
+
+	@Override
+	public String getLoggerName() {
+		return this.logger.getName();
+	}
+
+	@Override
+	public void setLoggerName(final String name) {
+		this.logger = LoggerFactory.getLogger(name);
+		this.mobs.setLoggerName(name + ".mobs");
 	}
 }

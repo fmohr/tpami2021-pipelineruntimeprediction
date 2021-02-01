@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.api4.java.ai.ml.core.dataset.supervised.ILabeledDataset;
 import org.api4.java.algorithm.Timeout;
@@ -23,10 +24,11 @@ import ai.libs.jaicore.experiments.IExperimentSetEvaluator;
 import ai.libs.jaicore.experiments.exceptions.ExperimentEvaluationFailedException;
 import ai.libs.jaicore.experiments.exceptions.ExperimentFailurePredictionException;
 import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
+import ai.libs.jaicore.timing.TimedComputation;
 import tpami.basealgorithmlearning.IConfigContainer;
+import tpami.basealgorithmlearning.datagathering.BasicDatasetFeatureGenerator;
+import tpami.basealgorithmlearning.datagathering.DatasetVarianceFeatureGenerator;
 import tpami.basealgorithmlearning.datagathering.ExperimentUtil;
-import tpami.basealgorithmlearning.regression.BasicDatasetFeatureGenerator;
-import tpami.basealgorithmlearning.regression.DatasetVarianceFeatureGenerator;
 
 public class PipelineExperimentEvaluator implements IExperimentSetEvaluator, ILoggingCustomizable {
 
@@ -83,16 +85,28 @@ public class PipelineExperimentEvaluator implements IExperimentSetEvaluator, ILo
 			}
 			processor.processResults(metaFeatures);
 
+			this.logger.info("Start pipeline training.");
 			long fitStart = System.currentTimeMillis();
-			pipeline.fit(split.get(0));
+			TimedComputation.compute(() -> {
+				pipeline.fit(split.get(0));
+				return null;
+			}, this.to, "Pipeline training.");
 			long fitStop = System.currentTimeMillis();
-			pipeline.predict(split.get(1));
+			long traintime = (fitStop - fitStart);
+			this.logger.info("Finished training after {}ms. Now starting predictions.", traintime);
+			long predictStart = System.currentTimeMillis();
+			TimedComputation.compute(() -> {
+				pipeline.predict(split.get(1));
+				return null;
+			}, new Timeout(10, TimeUnit.MINUTES), "Pipeline training.");
 			long predictStop = System.currentTimeMillis();
+			long predicttime = (predictStop - predictStart);
+			this.logger.info("Finished predictions after {}ms.", predicttime);
 
 			/* compute results */
 			Map<String, Object> results = new HashMap<>();
-			results.put("traintimeinms", (fitStop - fitStart));
-			results.put("timeforpredictionsinms", (predictStop - fitStop));
+			results.put("traintimeinms", traintime);
+			results.put("timeforpredictionsinms", predicttime);
 			results.put("predictedinstances", split.get(1).size());
 			processor.processResults(results);
 		}

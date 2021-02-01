@@ -20,12 +20,13 @@ public class DefaultBaseLearnerExperimenter {
 	public static void main(final String[] args) throws Exception {
 
 		/* parse arguments */
-		String configFileName = args[0];
-		String classifierName = args[1];
-		String executorinfo = args[2];
+		String dbConfigFileName = args[0];
+		String expConfigFileName = args[1];
+		String classifierName = args[2];
+		String executorinfo = args[3];
 
 		/* create evaluator and runner */
-		ClassifierExperimentEvaluator evaluator = new ClassifierExperimentEvaluator(new DefaultBaseLearnerConfigContainer(configFileName, classifierName), classifierName, to);
+		ClassifierExperimentEvaluator evaluator = new ClassifierExperimentEvaluator(new DefaultBaseLearnerConfigContainer(dbConfigFileName, expConfigFileName, classifierName), classifierName, to);
 		IConfigContainer container = evaluator.getContainer();
 		ExperimentRunner runner = new ExperimentRunner(container.getExperimentSetConfig(), evaluator, container.getDatabaseHandle(), executorinfo);
 

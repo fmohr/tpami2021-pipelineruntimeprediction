@@ -16,7 +16,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ai.libs.jaicore.basic.ResourceFile;
 import ai.libs.jaicore.basic.kvstore.KVStoreCollection;
 import ai.libs.jaicore.components.api.IComponentRepository;
 import ai.libs.jaicore.components.model.ComponentInstance;
@@ -43,8 +42,8 @@ public class BasicComponentPredictorTest {
 		Arrays.stream(DataBasedComponentPredictorUtil.WEKA_CLASSES).forEach(x -> {
 			learners.put(x.getSimpleName().toLowerCase(), x.getName());
 		});
-		cl = new ComponentSerialization().deserializeRepository(new ResourceFile("automl/searchmodels/weka/weka-all-autoweka.json"));
-		Instances dataset = new Instances(new FileReader(new File("car.arff")));
+		cl = new ComponentSerialization().deserializeRepository(new File("testrsc/automl/searchmodels/weka/base/index.json"));
+		Instances dataset = new Instances(new FileReader(new File("testrsc/car.arff")));
 		dataset.setClassIndex(dataset.numAttributes() - 1);
 
 		metaFeaturesTrain = new MetaFeatureContainer(new WekaInstances(dataset));

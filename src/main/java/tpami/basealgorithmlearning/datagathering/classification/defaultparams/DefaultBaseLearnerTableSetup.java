@@ -8,13 +8,13 @@ public class DefaultBaseLearnerTableSetup {
 	public static void main(final String[] args) throws Exception {
 		for (String baseLearner: WekaUtil.getBasicLearners()) {
 
-			if (!baseLearner.toLowerCase().contains("stump")) {
+			if (!baseLearner.toLowerCase().contains("bayesnet")) {
 				continue;
 			}
 			System.out.println(baseLearner);
 
 			/* prepare database for this combination */
-			DefaultBaseLearnerConfigContainer container = new DefaultBaseLearnerConfigContainer("conf/dbcon-local.conf", baseLearner);
+			DefaultBaseLearnerConfigContainer container = new DefaultBaseLearnerConfigContainer("conf/dbcon-local.conf", "conf/experiments/defaultparams/baselearner-variancecheck.conf", baseLearner);
 			ExperimentDatabasePreparer preparer = new ExperimentDatabasePreparer(container.getExperimentSetConfig(), container.getDatabaseHandle());
 			preparer.synchronizeExperiments();
 		}

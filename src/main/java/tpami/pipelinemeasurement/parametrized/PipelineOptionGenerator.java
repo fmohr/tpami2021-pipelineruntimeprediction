@@ -7,10 +7,15 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ai.libs.jaicore.basic.MathExt;
 import ai.libs.jaicore.basic.sets.SetUtil;
 import ai.libs.jaicore.experiments.IExperimentKeyGenerator;
+import ai.libs.jaicore.logging.LoggerUtil;
 import ai.libs.jaicore.ml.weka.WekaUtil;
 import ai.libs.jaicore.ml.weka.classification.learner.WekaClassifier;
 import ai.libs.jaicore.ml.weka.classification.pipeline.MLPipeline;
@@ -56,6 +61,7 @@ import weka.core.Randomizable;
 public class PipelineOptionGenerator implements IExperimentKeyGenerator<String> {
 
 	private static List<String> COMBOS = new ArrayList<>();
+	private static Logger logger = LoggerFactory.getLogger(LoggerUtil.LOGGER_NAME_TESTEDALGORITHM);
 
 	static {
 		//		gen();
@@ -73,10 +79,10 @@ public class PipelineOptionGenerator implements IExperimentKeyGenerator<String> 
 		int numPipelines = 0;
 		List<Integer> openmlids = Arrays.asList(3, 6, 12, 14, 16, 18, 21, 22, 23, 24, 26, 28, 30, 31, 32, 36, 38, 44, 46, 57, 60, 179, 180, 181, 182, 183, 184, 185, 273, 293, 300, 351, 354, 357, 389, 390, 391, 392, 393, 395, 396, 398, 399, 401, 554, 679, 715, 718, 720, 722, 723, 727, 728, 734, 735, 737, 740, 741, 743, 751, 752, 761, 772, 797, 799, 803, 806, 807, 813, 816, 819, 821, 822, 823, 833, 837, 843, 845, 846, 847, 849, 866, 871, 881, 897, 901, 903, 904, 910, 912, 913, 914, 917, 923, 930, 934, 953, 958, 959, 962, 966, 971, 976, 977, 978, 979, 980, 991, 993, 995, 1000, 1002, 1018, 1019, 1020, 1021, 1036, 1037, 1039, 1040, 1041, 1042, 1049, 1050, 1053, 1059, 1067, 1068, 1069, 1111, 1112, 1114, 1116, 1119, 1120, 1128, 1130, 1134, 1138, 1139, 1142, 1146, 1161, 1166, 1216, 1242, 1457, 1485, 1486, 1501, 1569, 4136, 4137, 4541, 4552, 23380, 23512, 40497, 40685, 40691, 40900, 40926, 40927, 40971, 40975, 41026, 41064, 41065, 41066, 41143, 41146, 41164, 41946, 41991);
 
-		int pipelinesPerBaseLearner = 1;
-		int pipelinesPerPreprocessor = 1;
+		int pipelinesPerBaseLearner = 5;
+		int pipelinesPerPreprocessor = 5;
 
-		System.out.println(pipelinesPerBaseLearner * pipelinesPerPreprocessor * baselearners.size() * combosPP.size() * attRange.size() * instRange.size());
+		int totalNumberOfExperiments = pipelinesPerBaseLearner * pipelinesPerPreprocessor * baselearners.size() * combosPP.size() * attRange.size() * instRange.size();
 
 		try {
 
@@ -112,7 +118,6 @@ public class PipelineOptionGenerator implements IExperimentKeyGenerator<String> 
 										if (metaLearnerIndex < metaLearners.size()) {
 											ml = metaLearners.get(metaLearnerIndex);
 										}
-										System.out.println(baseLearner + " + " + ml + " + "  + preProcessor);
 
 										try {
 
@@ -138,14 +143,14 @@ public class PipelineOptionGenerator implements IExperimentKeyGenerator<String> 
 											String str = om.writeValueAsString(pipeline.getConstructionPlan());
 
 											int openmlid = SetUtil.getRandomElement(openmlids, random);
-											System.out.println(openmlid);
-
 
 											COMBOS.add("{\"openmlid\": \"" + openmlid + "\", \"numinstances\": \"" + numInstances + "\", \"numattributes\": \"" + numAttributes + "\", \"pipeline\": " + str + "}");
+											logger.debug("Added {}-{}-{} for openmlid {}", preProcessor, baseClassifier, metaLearnerIndex, openmlid);
+											logger.info("Progress: {}%", MathExt.round(COMBOS.size() * 100.0 / totalNumberOfExperiments, 2));
 											ok = true;
 										}
 										catch (Exception e) {
-											e.printStackTrace();
+											logger.debug("Ignore combo {}", e.getMessage());
 										}
 									}
 								}

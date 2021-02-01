@@ -14,11 +14,11 @@ public class PreprocessingTableSetup {
 		System.out.println(combos);
 		for (List<String> combo : combos) {
 
-			//			if (!(
-			//					//					combo.get(1).toLowerCase().contains("correlation") || combo.get(1).contains("GainRatioAttributeEval") ||
-			//					combo.get(1).contains("OneRAttributeEval") || combo.get(1).contains("ReliefFAttributeEval") || combo.get(1).contains("SymmetricalUncertAttributeEval")) ) {
-			//				continue;
-			//			}
+			if (!(
+					//					combo.get(1).toLowerCase().contains("correlation") || combo.get(1).contains("GainRatioAttributeEval") ||
+					combo.get(1).contains("PrincipalComponent")) ) {
+				continue;
+			}
 
 			/* prepare database for this combination */
 			String searcher = Class.forName(combo.get(0)).getSimpleName();

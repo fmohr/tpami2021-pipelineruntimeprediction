@@ -7,7 +7,7 @@ import ai.libs.jaicore.experiments.IExperimentKeyGenerator;
 
 public class OneROptionGenerator implements IExperimentKeyGenerator<String> {
 
-	private static final List<String> MIN_BUCKET_SIZES = Arrays.asList("1", "2", "4", "8", "16", "32", "64"); // default is 6 (not included here)
+	private static final List<String> MIN_BUCKET_SIZES = Arrays.asList("1", "2", "4", "6", "8", "16", "32", "64"); // default is 6 (not included here)
 
 	@Override
 	public int getNumberOfValues() {

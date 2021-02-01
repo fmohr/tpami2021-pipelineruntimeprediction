@@ -15,15 +15,15 @@ public class ParametrizedPreprocessingTableSetup {
 		for (List<String> combo : combos) {
 
 
-			//			String ss = combo.get(0).toLowerCase();
-			//			if (ss.contains("bestfirst") )  {
-			//				continue;
-			//			}
-			//			String es = combo.get(1).toLowerCase();
-			//
-			//			if (es.contains("infogain") || es.contains("cfssubset") || es.contains("oner") || es.contains("principal") || es.contains("uncert") || es.contains("correlation") || es.contains("gainratio")) {
-			//				continue;
-			//			}
+			String ss = combo.get(0).toLowerCase();
+			if (ss.contains("bestfirst") )  {
+				continue;
+			}
+			String es = combo.get(1).toLowerCase();
+
+			if (!es.contains("principal")) {
+				continue;
+			}
 
 			/* prepare database for this combination */
 			String searcher = Class.forName(combo.get(0)).getSimpleName();

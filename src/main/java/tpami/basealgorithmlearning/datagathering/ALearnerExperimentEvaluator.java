@@ -28,16 +28,16 @@ public abstract class ALearnerExperimentEvaluator extends AMLAlgorithmExperiment
 	}
 
 	@Override
-	public void fit(final ILabeledDataset<?> trainData, final String[] options, final IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException {
+	public void fit(final ILabeledDataset<?> trainData, final String optionString, final IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException {
 		try {
-			this.classifier = this.getClassifier(options);
+			this.classifier = this.getClassifier(optionString);
 		} catch (Exception e) {
 			throw new IllegalArgumentException(e);
 		}
 		this.classifier.fit(trainData);
 	}
 
-	public abstract IClassifier getClassifier(String[] options) throws Exception;
+	public abstract IClassifier getClassifier(String optionString) throws Exception;
 
 	@Override
 	public DescriptiveStatistics apply(final ILabeledDataset<?> applicationData, final int goalTestPoints, final IExperimentIntermediateResultProcessor processor, final SimpleDateFormat format) throws ExperimentEvaluationFailedException {

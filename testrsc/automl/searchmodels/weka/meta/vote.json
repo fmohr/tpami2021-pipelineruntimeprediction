@@ -1,0 +1,38 @@
+{
+	"repository": "weka.classifiers.meta.Vote",
+	"include": [],
+	"components": [
+		{
+			"name": "weka.classifiers.meta.Vote",
+			"requiredInterface": [
+				{
+					"id": "B",
+					"name": "BaseClassifier",
+					"min": 2,
+					"max": 10
+				}
+			],
+			"providedInterface": [
+				"AbstractClassifier",
+				"MetaClassifier",
+				"MetaRegressor",
+				"PipelineClassifier"
+			],
+			"parameters": [
+				{
+					"name": "R",
+					"type": "cat",
+					"default": "AVG",
+					"values": [
+						"AVG",
+						"PROD",
+						"MAJ",
+						"MIN",
+						"MAX"
+					]
+				}
+			],
+			"dependencies": []
+		}
+	]
+}

@@ -5,7 +5,7 @@ import java.util.Map;
 import com.google.common.eventbus.EventBus;
 
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
-import tpami.basealgorithmlearning.regression.BasicDatasetFeatureGenerator;
+import tpami.basealgorithmlearning.datagathering.BasicDatasetFeatureGenerator;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.Sourcable;

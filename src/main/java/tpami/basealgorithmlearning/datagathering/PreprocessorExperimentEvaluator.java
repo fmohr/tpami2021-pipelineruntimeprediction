@@ -16,7 +16,8 @@ import ai.libs.jaicore.experiments.exceptions.ExperimentEvaluationFailedExceptio
 import ai.libs.jaicore.experiments.exceptions.ExperimentFailurePredictionException;
 import ai.libs.jaicore.ml.weka.dataset.IWekaInstances;
 import ai.libs.jaicore.ml.weka.dataset.WekaInstances;
-import tpami.basealgorithmlearning.IConfigContainer;
+import tpami.basealgorithmlearning.datagathering.preprocessing.PreprocessorConfigContainer;
+import tpami.basealgorithmlearning.datagathering.preprocessing.parametrized.ParametrizedPreprocessorConfigContainer;
 import weka.attributeSelection.ASEvaluation;
 import weka.attributeSelection.ASSearch;
 import weka.attributeSelection.AttributeSelection;
@@ -26,21 +27,32 @@ public class PreprocessorExperimentEvaluator extends AMLAlgorithmExperimentEvalu
 
 	/* prepare pre-processor */
 	private AttributeSelection as;
-	private final Class<?> searcherClass;
-	private final Class<?> evaluatorClass;
+	private final String searcherClassName;
+	private final String evaluatorClassName;
 
-	public PreprocessorExperimentEvaluator(final IConfigContainer container, final Timeout to, final String searcherName, final String evaluatorName) throws Exception {
+	public PreprocessorExperimentEvaluator(final PreprocessorConfigContainer container, final Timeout to) {
 		super(container, to);
-		this.searcherClass = Class.forName(searcherName);
-		this.evaluatorClass = Class.forName(evaluatorName);
+		this.searcherClassName = container.getSearcher();
+		this.evaluatorClassName = container.getEvaluator();
+	}
+
+	public PreprocessorExperimentEvaluator(final ParametrizedPreprocessorConfigContainer container, final Timeout to) {
+		super(container, to);
+		this.searcherClassName = container.getSearcher();
+		this.evaluatorClassName = container.getEvaluator();
 	}
 
 	@Override
-	public void fit(final ILabeledDataset<?> trainData, final String[] options, final IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException {
+	public void fit(final ILabeledDataset<?> trainData, final String optionString, final IExperimentIntermediateResultProcessor processor) throws TrainingException, InterruptedException {
 		try {
+			String[] parts = optionString.split(";");
 			this.as = new AttributeSelection();
-			this.as.setSearch(ASSearch.forName(this.searcherClass.getName(), options));
-			this.as.setEvaluator(ASEvaluation.forName(this.evaluatorClass.getName(), options));
+			if ((this.searcherClassName.contains("Ranker") || this.searcherClassName.contains("Greedy")) && !parts[0].contains("-N")) {
+				parts[0] += " -N 10";
+				System.out.println("Setting number of attributes to 10 by default");
+			}
+			this.as.setSearch(ASSearch.forName(this.searcherClassName, parts[0].trim().split(" ")));
+			this.as.setEvaluator(ASEvaluation.forName(this.evaluatorClassName, parts.length > 1 ? parts[1].split(" ") : null));
 
 		} catch (Exception e) {
 			throw new IllegalArgumentException(e);
@@ -61,7 +73,12 @@ public class PreprocessorExperimentEvaluator extends AMLAlgorithmExperimentEvalu
 		try {
 			long start = System.currentTimeMillis();
 			this.as.reduceDimensionality(((IWekaInstances)applicationData).getInstances());
-			runtimeStats.addValue(System.currentTimeMillis() - start);
+			long totalRuntime = System.currentTimeMillis() - start;
+			int totalInstances = applicationData.size();
+			double runtimePerInstance = totalRuntime * 1.0 / totalInstances;
+			for (int i = 0; i < totalInstances; i++) {
+				runtimeStats.addValue(runtimePerInstance);
+			}
 		} catch (Exception e) {
 			throw new ExperimentEvaluationFailedException(e);
 		}
@@ -109,7 +126,7 @@ public class PreprocessorExperimentEvaluator extends AMLAlgorithmExperimentEvalu
 
 	@Override
 	public String getNameOfEvaluatedAlgorithm() {
-		return this.searcherClass.getSimpleName() + "_" + this.evaluatorClass.getSimpleName();
+		return this.searcherClassName + "_" + this.evaluatorClassName;
 	}
 
 	@Override
